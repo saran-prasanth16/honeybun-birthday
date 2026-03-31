@@ -293,27 +293,24 @@
                 <div class="star-date">April ${i}</div>
             `;
 
-if (isUnlocked) {
-    node.onclick = () => {
-        const fileName = `day${i}.html`;
-
-        // Check if page should redirect or fallback to modal
-        if (i <= 4) {
-            window.location.href = fileName;
-        } else {
-            openModal(i);
+            if (isUnlocked) {
+                node.onclick = () => {
+                    if (i === 1) window.location.href = 'day1.html';
+                    else if (i === 2) window.location.href = 'day2.html';
+                    else if (i === 3) window.location.href = 'day3.html';
+                    else if (i === 4) window.location.href = 'day4.html';
+                    else openModal(i);
+                };
+            } else {
+                node.onclick = () => {
+                    const core = document.getElementById(`star-${i}`);
+                    core.style.animation = 'none';
+                    core.offsetHeight; /* trigger reflow */
+                    core.style.animation = 'reject 0.4s ease';
+                };
+            }
+            nodesContainer.appendChild(node);
         }
-    };
-} else {
-    node.onclick = () => {
-        const core = document.getElementById(`star-${i}`);
-        core.style.animation = 'none';
-        core.offsetHeight; // trigger reflow
-        core.style.animation = 'reject 0.4s ease';
-    };
-}
-
-nodesContainer.appendChild(node);
 
         // Draw the SVG connecting line after rendering
         window.addEventListener('load', drawLine);
