@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Incoming Call... ❤️</title>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Quicksand:wght@300;400;500;600&display=swap');
+
+        :root {
+            --bg-deep: #050304;
+            --rosegold-light: #e0bfb8;
+            --rosegold-main: #b76e79;
+            --glass-panel: rgba(20, 10, 12, 0.6);
+            --bubble-bg: rgba(183, 110, 121, 0.15);
+            --text-main: #f3e5e5;
+            --text-muted: #a68a8f;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            font-family: 'Quicksand', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            background-image: radial-gradient(circle at 50% 20%, #1a0f12 0%, var(--bg-deep) 80%);
+            height: 100vh; width: 100vw;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; position: relative; color: var(--text-main);
+        }
+
+        /* --- STARDUST BACKGROUND --- */
+        #floating-background {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1; pointer-events: none;
+        }
+
+        .floating-word {
+            position: absolute; font-family: 'Cormorant Garamond', serif;
+            color: var(--rosegold-light); white-space: nowrap;
+            text-shadow: 0 0 15px rgba(183, 110, 121, 0.5);
+            animation: floatUpwards linear infinite; bottom: -10%;
+        }
+
+        /* --- MAIN PHONE CONTAINER --- */
+        #phone-container {
+            width: 100%; max-width: 430px; height: 100%; max-height: 932px;
+            position: relative; z-index: 10;
+            background: var(--glass-panel);
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(183, 110, 121, 0.15);
+            box-shadow: 0 0 60px rgba(0,0,0,0.8), inset 0 0 20px rgba(183, 110, 121, 0.05);
+            overflow: hidden;
+        }
+
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
+        }
+        .screen.active { opacity: 1; pointer-events: all; }
+
+        /* --- 1. CALL SCREEN --- */
+        #call-screen {
+            justify-content: space-between; padding: 80px 20px;
+            background: radial-gradient(circle at top, rgba(183, 110, 121, 0.1), transparent 60%);
+        }
+
+        .caller-info { text-align: center; margin-top: 40px; }
+
+        .avatar {
+            width: 130px; height: 130px;
+            background: linear-gradient(135deg, #b76e79 0%, #e0bfb8 100%);
+            border-radius: 50%; margin: 0 auto 25px auto;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 3.5rem;
+            box-shadow: 0 0 40px rgba(183, 110, 121, 0.4);
+            animation: pulseGlow 2s infinite;
+        }
+
+        .caller-name { 
+            font-family: 'Cormorant Garamond', serif; font-size: 2.8rem; 
+            font-weight: 600; font-style: italic; margin-bottom: 8px; 
+            background: linear-gradient(to right, #e0bfb8, #b76e79);
+            -webkit-background-clip: text; color: transparent;
+        }
+        
+        .call-status { font-size: 1rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; }
+
+        .call-actions { display: flex; justify-content: space-around; padding: 0 30px; }
+        .action-btn-group { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .action-btn-group span { font-size: 0.8rem; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+
+        .call-btn {
+            width: 75px; height: 75px; border-radius: 50%; border: none;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .call-btn svg { width: 32px; height: 32px; color: white; }
+
+        .accept-btn {
+            background: rgba(183, 110, 121, 0.8);
+            border: 1px solid var(--rosegold-light);
+            box-shadow: 0 0 20px rgba(183, 110, 121, 0.4);
+            animation: bounce 2s infinite;
+        }
+        .accept-btn:hover { background: var(--rosegold-main); transform: scale(1.05); }
+
+        .decline-btn {
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px); position: relative;
+        }
+
+        /* --- 2. CHAT SCREEN --- */
+        #chat-screen { background: transparent; }
+
+        .chat-header {
+            height: 90px;
+            background: rgba(10, 5, 6, 0.8);
+            backdrop-filter: blur(15px); border-bottom: 1px solid rgba(183, 110, 121, 0.2);
+            display: flex; align-items: center; padding: 40px 20px 10px 20px; z-index: 20;
+        }
+
+        .header-avatar {
+            width: 45px; height: 45px;
+            background: linear-gradient(135deg, #b76e79 0%, #e0bfb8 100%);
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 1.2rem; margin-right: 15px; box-shadow: 0 0 10px rgba(183, 110, 121, 0.3);
+        }
+
+        .header-info h2 { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-style: italic; color: var(--rosegold-light); }
+        .header-info p { font-size: 0.75rem; color: var(--rosegold-main); letter-spacing: 1px; }
+
+        .chat-body {
+            flex: 1; overflow-y: auto; padding: 25px 20px;
+            display: flex; flex-direction: column; gap: 18px; scroll-behavior: smooth;
+        }
+
+        .message-wrapper {
+            display: flex; align-items: flex-end; opacity: 0; transform: translateY(20px);
+            animation: slideUp 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+        }
+
+        .message-bubble {
+            background: var(--bubble-bg);
+            border: 1px solid rgba(183, 110, 121, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 14px 18px; border-radius: 20px; border-bottom-left-radius: 4px;
+            max-width: 85%; font-size: 1rem; line-height: 1.5;
+            color: var(--text-main); font-weight: 300;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Press Here Button inside Chat */
+        .action-button-wrapper {
+            display: flex; justify-content: center; margin-top: 15px; margin-bottom: 20px;
+            opacity: 0; transform: translateY(20px);
+            animation: slideUp 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+        }
+
+        .reveal-btn {
+            background: linear-gradient(135deg, #b76e79 0%, #e0bfb8 100%);
+            border: none; padding: 14px 35px; border-radius: 30px;
+            font-family: 'Quicksand', sans-serif; font-size: 0.9rem; font-weight: 600;
+            color: var(--bg-deep); text-transform: uppercase; letter-spacing: 2px;
+            cursor: pointer; box-shadow: 0 10px 20px rgba(183, 110, 121, 0.3);
+            transition: all 0.3s ease;
+            animation: pulseGlowBtn 2s infinite;
+        }
+
+        .reveal-btn:active { transform: scale(0.95); }
+
+        .chat-footer {
+            padding: 15px 20px 30px 20px;
+            background: rgba(10, 5, 6, 0.8); backdrop-filter: blur(15px);
+            border-top: 1px solid rgba(183, 110, 121, 0.1);
+        }
+
+        .fake-input {
+            background: rgba(255, 255, 255, 0.05); border-radius: 25px;
+            border: 1px solid rgba(183, 110, 121, 0.2);
+            padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .fake-input .placeholder { color: var(--text-muted); font-size: 0.9rem; }
+        .send-icon {
+            width: 30px; height: 30px; background: var(--rosegold-main);
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            color: var(--bg-deep); font-weight: bold; font-size: 1.2rem;
+        }
+
+        /* Typing indicator */
+        .typing-indicator { display: flex; gap: 5px; padding: 15px 20px; background: var(--bubble-bg); border: 1px solid rgba(183,110,121,0.2); border-radius: 20px; border-bottom-left-radius: 4px; width: fit-content; }
+        .dot { width: 6px; height: 6px; background-color: var(--rosegold-light); border-radius: 50%; animation: typing 1.4s infinite ease-in-out both; }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        /* --- 3. FINAL REVEAL CARD --- */
+        #final-screen {
+            background: rgba(5, 3, 4, 0.85); backdrop-filter: blur(20px);
+            display: flex; justify-content: center; align-items: center;
+            padding: 30px; z-index: 50;
+        }
+
+        .reveal-card {
+            background: linear-gradient(180deg, rgba(30,15,20,0.8) 0%, rgba(15,8,10,0.9) 100%);
+            border: 1px solid rgba(183, 110, 121, 0.3); border-radius: 24px;
+            padding: 50px 30px; text-align: center;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8), 0 0 40px rgba(183, 110, 121, 0.15);
+            transform: scale(0.9); opacity: 0; transition: all 1s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        #final-screen.active .reveal-card { transform: scale(1); opacity: 1; }
+
+        .reveal-title { font-family: 'Cormorant Garamond', serif; font-size: 2.5rem; color: var(--rosegold-light); font-style: italic; margin-bottom: 20px; }
+        .reveal-body { font-size: 1rem; color: #d8c8cb; line-height: 1.7; font-weight: 300; margin-bottom: 30px; }
+        .reveal-footer { font-size: 0.7rem; letter-spacing: 4px; color: var(--rosegold-main); text-transform: uppercase; }
+
+        /* KEYFRAMES */
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 rgba(183, 110, 121, 0.6); }
+            70% { box-shadow: 0 0 0 35px rgba(183, 110, 121, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(183, 110, 121, 0); }
+        }
+        @keyframes pulseGlowBtn {
+            0% { box-shadow: 0 0 0 0 rgba(183, 110, 121, 0.5); }
+            70% { box-shadow: 0 0 0 20px rgba(183, 110, 121, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(183, 110, 121, 0); }
+        }
+        @keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px); } 60% { transform: translateY(-5px); } }
+        @keyframes floatUpwards { 0% { transform: translateY(10vh) scale(0.8); opacity: 0; } 10% { opacity: var(--target-opacity); } 90% { opacity: var(--target-opacity); } 100% { transform: translateY(-110vh) scale(1.1); opacity: 0; } }
+        @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+        @keyframes typing { 0%, 80%, 100% { transform: scale(0); opacity: 0.5; } 40% { transform: scale(1.5); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="floating-background"></div>
+
+    <div id="phone-container">
+        
+        <div id="call-screen" class="screen active">
+            <div class="caller-info">
+                <div class="avatar">✨</div>
+                <h1 class="caller-name">Your Pookie</h1>
+                <p class="call-status">Love incoming...</p>
+            </div>
+            
+            <div class="call-actions">
+                <div class="action-btn-group" id="decline-group">
+                    <button id="decline-btn" class="call-btn decline-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path><line x1="23" y1="1" x2="1" y2="23"></line></svg>
+                    </button>
+                    <span>Decline</span>
+                </div>
+                
+                <div class="action-btn-group">
+                    <button id="accept-btn" class="call-btn accept-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                    </button>
+                    <span>Accept</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="chat-screen" class="screen">
+            <div class="chat-header">
+                <div class="header-avatar">✨</div>
+                <div class="header-info">
+                    <h2>Your Pookie</h2>
+                    <p>Forever no matter what</p>
+                </div>
+            </div>
+            
+            <div class="chat-body" id="chat-body"></div>
+            
+            <div class="chat-footer">
+                <div class="fake-input">
+                    <span class="placeholder">Message locked...</span>
+                    <div class="send-icon">↑</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="final-screen" class="screen">
+            <div class="reveal-card">
+                <h1 class="reveal-title">It Begins</h1>
+                <div style="width: 40px; height: 1px; background: var(--rosegold-main); margin: 0 auto 20px auto;"></div>
+                <p class="reveal-body">
+                    Today is the very first step.<br><br>
+                    Over the next two weeks, I'll be counting the moments until I can celebrate my pani bommai's special day.<br><br>
+                    Smile today, my thangoo.
+                </p>
+                <div class="reveal-footer">Day 1 Unlocked</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. STARDUST BACKGROUND ---
+        const backgroundContainer = document.getElementById('floating-background');
+        const sweetWords = ['✦', 'honeybun', '✨', 'I love you', 'thangoo', '🤍', 'pattu', 'ammu', 'pani bommai'];
+
+        function createFloatingWords(amount = 20) {
+            for (let i = 0; i < amount; i++) {
+                const wordEl = document.createElement('div');
+                wordEl.className = 'floating-word';
+                wordEl.innerText = sweetWords[Math.floor(Math.random() * sweetWords.length)];
+                wordEl.style.left = `${Math.random() * 100}vw`;
+                
+                const size = 0.8 + Math.random() * 1.5;
+                wordEl.style.fontSize = `${size}rem`;
+                
+                const opacity = 0.1 + Math.random() * 0.4;
+                wordEl.style.setProperty('--target-opacity', opacity);
+                
+                wordEl.style.animationDuration = `${15 + Math.random() * 25}s`; 
+                wordEl.style.animationDelay = `-${Math.random() * 30}s`; 
+                
+                backgroundContainer.appendChild(wordEl);
+            }
+        }
+        createFloatingWords();
+
+        // --- 2. CALL LOGIC ---
+        const callScreen = document.getElementById('call-screen');
+        const chatScreen = document.getElementById('chat-screen');
+        const finalScreen = document.getElementById('final-screen');
+        const acceptBtn = document.getElementById('accept-btn');
+        const declineBtn = document.getElementById('decline-btn');
+
+        // Funny Interaction: Decline button runs away
+        declineBtn.addEventListener('touchstart', dodgeFinger, {passive: false});
+        declineBtn.addEventListener('mouseover', dodgeFinger);
+
+        function dodgeFinger(e) {
+            e.preventDefault(); 
+            const x = Math.random() * 120 - 60; 
+            const y = Math.random() * -100 - 40; 
+            declineBtn.style.transform = `translate(${x}px, ${y}px)`;
+        }
+
+        // Accept Call -> Start Chat
+        acceptBtn.addEventListener('click', () => {
+            callScreen.classList.remove('active');
+            setTimeout(() => {
+                chatScreen.classList.add('active');
+                startChatSequence();
+            }, 600);
+        });
+
+        // --- 3. CHAT SEQUENCE ---
+        const chatBody = document.getElementById('chat-body');
+
+        const chatMessages = [
+            "Dii honeybun ✨",
+            "Did you really try to press decline?",
+            "Just kidding... I know you wouldn't.",
+            "Today isn't just a normal day.",
+            "This is where something small, but infinitely special begins.",
+            "I built this digital space just for us.",
+            "Because my love for you can't be contained in just one day.",
+            "Are you ready?",
+            "..."
+        ];
+
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        function showTyping() {
+            return new Promise(async (resolve) => {
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'message-wrapper typing-wrapper';
+                typingDiv.innerHTML = `
+                    <div class="typing-indicator">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>
+                `;
+                chatBody.appendChild(typingDiv);
+                scrollToBottom();
+                
+                const typingTime = 1200 + Math.random() * 1000;
+                await sleep(typingTime);
+                
+                typingDiv.remove();
+                resolve();
+            });
+        }
+
+        function addMessage(text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message-wrapper';
+            msgDiv.innerHTML = `<div class="message-bubble">${text}</div>`;
+            chatBody.appendChild(msgDiv);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        async function startChatSequence() {
+            await sleep(1000); 
+            
+            for (let i = 0; i < chatMessages.length; i++) {
+                await showTyping();
+                addMessage(chatMessages[i]);
+                
+                const pauseTime = i === chatMessages.length - 1 ? 1500 : 1000 + Math.random() * 800;
+                await sleep(pauseTime);
+            }
+
+            // After the chat, spawn the "Tap to unlock" button
+            await sleep(600);
+            
+            const btnWrapper = document.createElement('div');
+            btnWrapper.className = 'action-button-wrapper';
+            btnWrapper.innerHTML = `<button class="reveal-btn" id="tap-reveal-btn">Tap to Unlock ✨</button>`;
+            
+            chatBody.appendChild(btnWrapper);
+            scrollToBottom();
+
+            // When she clicks the button, trigger the reveal!
+            document.getElementById('tap-reveal-btn').addEventListener('click', () => {
+                chatScreen.classList.remove('active');
+                setTimeout(() => {
+                    finalScreen.classList.add('active');
+                }, 800);
+            });
+        }
+    </script>
+</body>
+</html>
