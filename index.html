@@ -113,7 +113,7 @@
             transform: scale(1.15);
             background: linear-gradient(135deg, rgba(255, 42, 95, 0.4), rgba(232, 178, 193, 0.2));
             box-shadow: 0 0 35px rgba(255, 42, 95, 0.6), inset 0 0 20px rgba(255, 42, 95, 0.4);
-            animation: none; /* Stop pulsing on hover so it feels solid */
+            animation: none;
         }
 
         .star-locked {
@@ -134,55 +134,6 @@
         }
         .star-node:nth-child(odd) .star-date { left: calc(18% + 75px); }
         .star-node:nth-child(even) .star-date { right: calc(18% + 75px); }
-
-        /* --- 4. Premium Modal --- */
-        #modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(8, 2, 3, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            z-index: 50; display: flex; justify-content: center; align-items: center;
-            opacity: 0; pointer-events: none; transition: opacity 0.6s ease;
-        }
-
-        #modal-overlay.active { opacity: 1; pointer-events: all; }
-
-        .modal-card {
-            width: 88%; max-width: 400px;
-            background: linear-gradient(180deg, rgba(42, 8, 18, 0.85) 0%, rgba(18, 3, 6, 0.95) 100%);
-            border: 1px solid rgba(255, 42, 95, 0.3); border-radius: 30px;
-            padding: 50px 30px 40px 30px; text-align: center;
-            transform: translateY(40px) scale(0.95); transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 50px rgba(255, 42, 95, 0.15);
-            position: relative; overflow: hidden;
-        }
-
-        #modal-overlay.active .modal-card { transform: translateY(0) scale(1); }
-
-        /* Modal Top Glow */
-        .modal-card::before {
-            content: ''; position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
-            width: 180px; height: 180px; background: radial-gradient(circle, rgba(255, 42, 95, 0.2) 0%, transparent 70%);
-            border-radius: 50%; pointer-events: none;
-        }
-
-        .modal-title {
-            font-family: 'Cormorant Garamond', serif; font-size: 2.6rem;
-            color: var(--rosegold); margin-bottom: 20px; font-style: italic; font-weight: 600;
-        }
-
-        .modal-text {
-            font-size: 1.05rem; line-height: 1.8; color: var(--text-light);
-            margin-bottom: 40px; font-weight: 300; white-space: pre-line;
-        }
-
-        .close-btn {
-            background: linear-gradient(135deg, rgba(255, 42, 95, 0.2), transparent);
-            border: 1px solid rgba(255, 42, 95, 0.5);
-            color: var(--rosegold); padding: 14px 35px; border-radius: 40px;
-            font-family: 'Montserrat', sans-serif; font-size: 0.75rem; letter-spacing: 3px;
-            text-transform: uppercase; cursor: pointer; transition: all 0.3s ease;
-        }
-
-        .close-btn:hover { background: rgba(255, 42, 95, 0.3); box-shadow: 0 0 20px rgba(255, 42, 95, 0.3); color: #fff;}
 
         /* Animations */
         @keyframes cinematicFade {
@@ -232,41 +183,13 @@
         <p class="header-subtitle" style="margin-top: 60px; margin-bottom: 0; opacity: 0.5;">Our Forever Begins Soon</p>
     </div>
 
-    <div id="modal-overlay">
-        <div class="modal-card">
-            <h2 id="modal-title" class="modal-title">April 1st</h2>
-            <div style="width: 40px; height: 1px; background: rgba(255, 42, 95, 0.5); margin: 0 auto 25px auto;"></div>
-            <p id="modal-text" class="modal-text"></p>
-            <button class="close-btn" onclick="closeModal()">Close With Love</button>
-        </div>
-    </div>
-
     <script>
-        // --- DATA ---
-        const surprises = {
-            1: "The first day of our countdown. My heart beats faster just thinking about April 15th. You are my world.",
-            2: "Your laugh is my favorite soundtrack. I hope today gives you a million reasons to smile, ammu.",
-            3: "I'm so proud of the woman you are. Every day with you is a blessing I never saw coming.",
-            4: "Reminder: You are the most beautiful person I know—inside and out. ✨",
-            5: "Only 10 days left! My biggest gift this year is just being by your side.",
-            6: "Thinking about our first date today... I knew even then you were the one. 🌹",
-            7: "Halfway there, gorgeous! You're the best part of my every single day, pattu.",
-            8: "I love you more than words, more than music, and definitely more than sleep.",
-            9: "You make my soul happy. Thank you for being my peace in this crazy world.",
-            10: "5 days to go! The excitement is real. I have so much love waiting for you.",
-            11: "You're not just my girlfriend; you're my best friend and my home. 🏠💖",
-            12: "Counting the minutes until I can see that birthday glow on your face.",
-            13: "Almost there! I hope you're feeling as special as you truly are.",
-            14: "Tomorrow is the big day. My heart is so full just thinking about you. Sleep well, my honeybun.",
-            15: "HAPPY BIRTHDAY MY LOVE! 🎉 Today, the world celebrates the day you were born, but I celebrate you every single second."
-        };
-
         // --- INTRO SEQUENCE ---
         setTimeout(() => {
             const intro = document.getElementById('intro-overlay');
             intro.style.opacity = '0';
             setTimeout(() => intro.remove(), 2500);
-        }, 5500); // Intro lasts slightly longer to read
+        }, 5500); 
 
         // --- CONSTELLATION GENERATOR ---
         const nodesContainer = document.getElementById('nodes-container');
@@ -295,17 +218,25 @@
 
             if (isUnlocked) {
                 node.onclick = () => {
+                    // Route to the pages you have built
                     if (i === 1) window.location.href = 'day1.html';
                     else if (i === 2) window.location.href = 'day2.html';
                     else if (i === 3) window.location.href = 'day3.html';
                     else if (i === 4) window.location.href = 'day4.html';
-                    else openModal(i);
+                    else if (i === 5) window.location.href = 'day5.html';
+                    else {
+                        // Shake animation for days you haven't built pages for yet
+                        const core = document.getElementById(`star-${i}`);
+                        core.style.animation = 'none';
+                        core.offsetHeight; /* trigger reflow */
+                        core.style.animation = 'reject 0.4s ease';
+                    }
                 };
             } else {
                 node.onclick = () => {
                     const core = document.getElementById(`star-${i}`);
                     core.style.animation = 'none';
-                    core.offsetHeight; /* trigger reflow */
+                    core.offsetHeight; 
                     core.style.animation = 'reject 0.4s ease';
                 };
             }
@@ -321,7 +252,7 @@
             for (let i = 1; i <= 15; i++) {
                 const star = document.getElementById(`star-${i}`);
                 if(!star) continue;
-                // Get position relative to the SVG container
+                
                 const rect = star.getBoundingClientRect();
                 const containerRect = document.getElementById('journey-container').getBoundingClientRect();
                 
@@ -331,7 +262,6 @@
                 if (i === 1) {
                     pathString += `M ${x} ${y} `;
                 } else {
-                    // Create a smooth bezier curve between points
                     const prevStar = document.getElementById(`star-${i-1}`);
                     const prevRect = prevStar.getBoundingClientRect();
                     const prevX = prevRect.left - containerRect.left + (prevRect.width / 2);
@@ -346,17 +276,6 @@
                 }
             }
             pathLine.setAttribute('d', pathString);
-        }
-
-        // --- MODAL LOGIC ---
-        function openModal(day) {
-            document.getElementById('modal-title').innerText = `April ${day}`;
-            document.getElementById('modal-text').innerText = surprises[day];
-            document.getElementById('modal-overlay').classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('modal-overlay').classList.remove('active');
         }
 
         // --- INTERACTIVE FIREFLY CANVAS ---
@@ -390,7 +309,6 @@
             ctx.clearRect(0, 0, width, height);
             
             fireflies.forEach(fly => {
-                // Drift gently upwards and sway side to side
                 fly.y -= fly.velocity;
                 fly.sway += 0.02;
                 fly.x += Math.sin(fly.sway) * 0.5;
@@ -400,11 +318,9 @@
                     fly.x = Math.random() * width; 
                 }
                 
-                // Pulsate glow
                 fly.alpha += fly.pulsate;
                 if (fly.alpha >= 0.8 || fly.alpha <= 0.1) fly.pulsate *= -1;
 
-                // Draw glowing aura
                 const gradient = ctx.createRadialGradient(fly.x, fly.y, 0, fly.x, fly.y, fly.radius * 3);
                 gradient.addColorStop(0, `rgba(255, 179, 193, ${fly.alpha})`);
                 gradient.addColorStop(1, `rgba(255, 42, 95, 0)`);
@@ -414,7 +330,6 @@
                 ctx.fillStyle = gradient;
                 ctx.fill();
 
-                // Draw solid core
                 ctx.beginPath();
                 ctx.arc(fly.x, fly.y, fly.radius * 0.5, 0, Math.PI * 2);
                 ctx.fillStyle = `rgba(255, 255, 255, ${fly.alpha + 0.2})`;
