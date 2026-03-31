@@ -1,179 +1,124 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@300;400;500&display=swap');
+// --- BACKGROUND ANIMATION ---
+const backgroundContainer = document.getElementById('floating-background');
+const sweetWords = ['honeybun', 'I love you ❤️', 'thangoo', 'pattu', 'ammu', 'pani bommai', '✨'];
 
-:root {
-    --bg-main: #0a0a0a; 
-    --bg-gradient-dark: linear-gradient(135deg, #070707 0%, #170d0f 100%); 
-    --card-bg: rgba(20, 20, 20, 0.85); 
-    --text-main: #fcfcfc; 
-    --text-heading: #ffb3c1; 
-    --btn-bg: #2a1a1a; 
-    --btn-hover: #ffc4cf; 
-    --btn-text: #ffb3c1; 
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    background: var(--bg-gradient-dark);
-    color: var(--text-main);
-    font-family: 'Montserrat', sans-serif;
-    height: 100vh;
-    width: 100vw;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden; 
-    position: relative;
-}
-
-/* Background Floating Elements */
-#floating-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-    pointer-events: none; /* Crucial so it doesn't block clicks */
-}
-
-.floating-word {
-    position: absolute;
-    font-family: 'Cormorant Garamond', serif;
-    color: var(--text-heading);
-    white-space: nowrap;
-    text-shadow: 0 2px 10px rgba(255, 179, 193, 0.2);
-    animation: floatUpwards linear infinite;
-    bottom: -10%; /* Start slightly below screen */
-}
-
-/* Screens */
-.screen {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 1.2s ease-in-out;
-    z-index: 10;
-}
-
-.screen.active {
-    opacity: 1;
-    pointer-events: all;
-}
-
-/* Typography & Layout */
-.intro-content {
-    text-align: center;
-    transform: translateY(10px);
-    animation: fadeFloat 1.5s ease forwards;
-}
-
-h1 {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 3.5rem;
-    margin-bottom: 0.5rem;
-    color: var(--text-heading);
-    font-weight: 600;
-}
-
-.intro-content p {
-    font-size: 1.1rem;
-    margin-bottom: 2.5rem;
-    color: #ccc;
-    font-weight: 300;
-}
-
-.card {
-    background: var(--card-bg);
-    padding: 2.5rem 1.5rem;
-    border-radius: 24px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); 
-    width: 90%;
-    max-width: 420px;
-    text-align: center;
-    transform: translateY(20px);
-    opacity: 0;
-    transition: all 1.2s ease cubic-bezier(0.25, 0.8, 0.25, 1);
-    backdrop-filter: blur(12px); 
-    border: 1px solid rgba(255, 179, 193, 0.08); 
-    z-index: 20;
-}
-
-.screen.active .card {
-    transform: translateY(0);
-    opacity: 1;
-}
-
-#message-text {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 1.6rem; 
-    line-height: 1.5;
-    min-height: 140px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    white-space: pre-line;
-    margin-bottom: 2rem;
-    color: var(--text-main);
-    text-shadow: 0 2px 5px rgba(0,0,0,0.5);
-}
-
-/* Button */
-.btn {
-    background: var(--btn-bg);
-    color: var(--btn-text);
-    border: 1px solid rgba(255, 179, 193, 0.4); 
-    padding: 14px 32px;
-    border-radius: 40px;
-    font-size: 1rem;
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.4s ease;
-    box-shadow: 0 4px 15px rgba(214, 140, 154, 0.1);
-}
-
-.btn:hover {
-    background: var(--btn-hover);
-    border-color: var(--btn-hover);
-    color: var(--bg-main);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(214, 140, 154, 0.3);
-}
-
-.btn.hidden {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(10px);
-}
-
-/* Animations */
-@keyframes fadeFloat {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes floatUpwards {
-    0% {
-        transform: translateY(10vh) translateX(0) scale(0.8);
-        opacity: 0;
+function createFloatingWords(amount = 25) {
+    for (let i = 0; i < amount; i++) {
+        const wordEl = document.createElement('div');
+        wordEl.className = 'floating-word';
+        wordEl.innerText = sweetWords[Math.floor(Math.random() * sweetWords.length)];
+        wordEl.style.left = `${Math.random() * 100}vw`;
+        
+        const size = 0.8 + Math.random() * 1.2;
+        wordEl.style.fontSize = `${size}rem`;
+        
+        const opacity = 0.1 + Math.random() * 0.2;
+        wordEl.style.setProperty('--target-opacity', opacity);
+        
+        const drift = (Math.random() * 40 - 20); 
+        wordEl.style.setProperty('--drift', `${drift}vw`);
+        
+        wordEl.style.animationDuration = `${15 + Math.random() * 25}s`; 
+        wordEl.style.animationDelay = `-${Math.random() * 30}s`; 
+        
+        backgroundContainer.appendChild(wordEl);
     }
-    10% { opacity: var(--target-opacity); }
-    50% { transform: translateY(-50vh) translateX(var(--drift)) scale(1); }
-    90% { opacity: var(--target-opacity); }
-    100% {
-        transform: translateY(-110vh) translateX(calc(var(--drift) * 1.5)) scale(1.1);
-        opacity: 0;
+}
+createFloatingWords();
+
+// --- CALL SCREEN LOGIC ---
+const callScreen = document.getElementById('call-screen');
+const chatScreen = document.getElementById('chat-screen');
+const acceptBtn = document.getElementById('accept-btn');
+const declineBtn = document.getElementById('decline-btn');
+
+// Funny Interaction: Decline button runs away
+declineBtn.addEventListener('touchstart', dodgeFinger);
+declineBtn.addEventListener('mouseover', dodgeFinger);
+
+function dodgeFinger(e) {
+    e.preventDefault(); // Prevents clicking on mobile
+    const x = Math.random() * 100 - 50; // Random X movement
+    const y = Math.random() * -100 - 50; // Random Y movement upwards
+    declineBtn.style.transform = `translate(${x}px, ${y}px)`;
+}
+
+// Accept Call -> Start Chat
+acceptBtn.addEventListener('click', () => {
+    callScreen.classList.remove('active');
+    setTimeout(() => {
+        chatScreen.classList.add('active');
+        startChatSequence();
+    }, 500);
+});
+
+// --- CHAT SEQUENCE LOGIC ---
+const chatBody = document.getElementById('chat-body');
+
+// The sequence of text messages for Day 1
+const chatMessages = [
+    "Hey beautiful ❤️",
+    "Are you there?",
+    "Today isn't just a normal day.",
+    "This is where something small... but infinitely special begins.",
+    "I built a little digital space just for us.",
+    "Every day, a new piece of my heart for you.",
+    "I can't wait to celebrate you.",
+    "Day 1 is officially unlocked. ✨",
+    "Smile today, my pani bommai. See you tomorrow. ❤️"
+];
+
+// Helper: Simulate delay (Returns a promise that resolves after ms)
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper: Show typing indicator
+function showTyping() {
+    return new Promise(async (resolve) => {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message-wrapper typing-wrapper';
+        typingDiv.innerHTML = `
+            <div class="typing-indicator">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        `;
+        chatBody.appendChild(typingDiv);
+        scrollToBottom();
+        
+        // Random typing duration between 1.5s and 3s for realism
+        const typingTime = 1500 + Math.random() * 1500;
+        await sleep(typingTime);
+        
+        // Remove typing indicator and resolve
+        typingDiv.remove();
+        resolve();
+    });
+}
+
+// Helper: Add actual text message
+function addMessage(text) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'message-wrapper';
+    msgDiv.innerHTML = `<div class="message-bubble">${text}</div>`;
+    chatBody.appendChild(msgDiv);
+    scrollToBottom();
+}
+
+function scrollToBottom() {
+    chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+// Main sequence runner
+async function startChatSequence() {
+    await sleep(1000); // Initial pause after opening chat
+    
+    for (let i = 0; i < chatMessages.length; i++) {
+        await showTyping();
+        addMessage(chatMessages[i]);
+        
+        // Pause between messages (longer pause for emphasis on some lines)
+        const pauseTime = i === chatMessages.length - 2 ? 3000 : 1000 + Math.random() * 1000;
+        await sleep(pauseTime);
     }
 }
