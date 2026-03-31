@@ -1,107 +1,278 @@
-// The story sequence for Day 1
-const steps = [
-    "Good morning ❤️❤️❤️\n\nToday is not just a normal day.\nThis dark sky hides a bright secret... ✨",
-    "This is where something small...\nbut infinitely special begins.\nSomething crafted just for you ❤️",
-    "A little digital space,\nbuilt with love and a bit of magic. ✨\nEvery day, a new piece of my heart for you.",
-    "I can't wait to celebrate the most amazing person I know.\nAre you ready for the countdown? ❤️",
-    "Day 1 is starting now... ✨\nClose your eyes... get ready."
-];
+@import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600&family=Cormorant+Garamond:ital@1&display=swap');
 
-let currentStep = 0;
-let typingInterval;
-
-// DOM Elements
-const introScreen = document.getElementById('intro-screen');
-const mainScreen = document.getElementById('main-screen');
-const startBtn = document.getElementById('start-btn');
-const nextBtn = document.getElementById('next-btn');
-const messageText = document.getElementById('message-text');
-const backgroundContainer = document.getElementById('floating-background');
-
-// Words to float in the background
-const sweetWords = [
-    'honeybun', 'I love you ❤️', 'thangoo', 
-    'pattu', 'ammu', 'pani bommai', '✨', '❤️'
-];
-
-// Initialize background immediately
-createFloatingWords();
-
-// Handle initial entry
-startBtn.addEventListener('click', () => {
-    introScreen.classList.remove('active');
-    
-    // Increase the intensity/amount of floating words when they enter
-    createFloatingWords(15); 
-    
-    setTimeout(() => {
-        mainScreen.classList.add('active');
-        setTimeout(() => {
-            typeText(steps[currentStep]);
-        }, 600);
-    }, 1000); 
-});
-
-// Handle moving through the message
-nextBtn.addEventListener('click', () => {
-    currentStep++;
-    
-    if (currentStep < steps.length) {
-        nextBtn.classList.add('hidden'); 
-        typeText(steps[currentStep]);
-
-        if (currentStep === steps.length - 1) {
-            nextBtn.innerText = "See you tomorrow ✨❤️✨";
-        }
-    } else {
-        messageText.innerHTML = "Day 1 is officially unlocked. ✨\n\nSmile today.\nMy beautiful honeybun. ❤️";
-        nextBtn.classList.add('hidden');
-    }
-});
-
-// Function to generate floating text all over the page
-function createFloatingWords(amount = 25) {
-    for (let i = 0; i < amount; i++) {
-        const wordEl = document.createElement('div');
-        wordEl.className = 'floating-word';
-        wordEl.innerText = sweetWords[Math.floor(Math.random() * sweetWords.length)];
-        
-        // Randomize placement across the entire viewport width
-        wordEl.style.left = `${Math.random() * 100}vw`;
-        
-        // Randomize sizes (keep them elegant, not too massive)
-        const size = 0.8 + Math.random() * 1.5;
-        wordEl.style.fontSize = `${size}rem`;
-        
-        // Randomize opacity (keep it subtle so it doesn't distract from the main text)
-        const opacity = 0.15 + Math.random() * 0.3;
-        wordEl.style.setProperty('--target-opacity', opacity);
-        
-        // Randomize drift (how far left/right they sway while moving up)
-        const drift = (Math.random() * 40 - 20); // -20vw to +20vw
-        wordEl.style.setProperty('--drift', `${drift}vw`);
-        
-        // Randomize speed and delay for an organic, continuous flow
-        wordEl.style.animationDuration = `${15 + Math.random() * 25}s`; 
-        wordEl.style.animationDelay = `-${Math.random() * 30}s`; // Negative delay starts them mid-animation
-        
-        backgroundContainer.appendChild(wordEl);
-    }
+:root {
+    --bg-dark: #000000;
+    --chat-bg: rgba(10, 10, 10, 0.6);
+    --bubble-received: #262628;
+    --text-main: #ffffff;
+    --text-muted: #8e8e93;
+    --accent-green: #34c759;
+    --accent-red: #ff3b30;
+    --accent-blue: #0a84ff;
+    --glass-border: rgba(255, 255, 255, 0.1);
 }
 
-// Core typing animation function
-function typeText(text) {
-    clearInterval(typingInterval);
-    messageText.innerHTML = "";
-    
-    let i = 0;
-    typingInterval = setInterval(() => {
-        if (i < text.length) {
-            messageText.innerHTML += text.charAt(i);
-            i++;
-        } else {
-            clearInterval(typingInterval);
-            nextBtn.classList.remove('hidden');
-        }
-    }, 30); 
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: var(--bg-dark);
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    color: var(--text-main);
+}
+
+/* Floating Wallpaper Text (from previous version) */
+#floating-background {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 1; pointer-events: none;
+}
+.floating-word {
+    position: absolute;
+    font-family: 'Cormorant Garamond', serif;
+    color: #ffb3c1;
+    white-space: nowrap;
+    animation: floatUpwards linear infinite;
+    bottom: -10%;
+}
+
+/* Restrict UI to a phone-sized container even on desktop */
+#phone-container {
+    width: 100%;
+    max-width: 430px; /* iPhone Pro Max width */
+    height: 100%;
+    max-height: 932px;
+    position: relative;
+    z-index: 10;
+    background: var(--chat-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+
+/* Screen Management */
+.screen {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+.screen.active {
+    opacity: 1; pointer-events: all;
+}
+
+/* --- CALL SCREEN --- */
+#call-screen {
+    justify-content: space-between;
+    padding: 60px 20px 80px 20px;
+    background: linear-gradient(180deg, rgba(30,30,30,0.8) 0%, rgba(0,0,0,0.9) 100%);
+}
+
+.caller-info {
+    text-align: center;
+    margin-top: 40px;
+}
+
+.avatar {
+    width: 120px; height: 120px;
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+    border-radius: 50%;
+    margin: 0 auto 20px auto;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 3rem;
+    box-shadow: 0 10px 30px rgba(255, 154, 158, 0.3);
+    animation: pulse 2s infinite;
+}
+
+.caller-name {
+    font-size: 2.2rem;
+    font-weight: 400;
+    margin-bottom: 8px;
+}
+
+.call-status {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+}
+
+.call-actions {
+    display: flex;
+    justify-content: space-around;
+    padding: 0 20px;
+}
+
+.action-btn-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.action-btn-group span {
+    font-size: 0.9rem;
+    color: var(--text-main);
+}
+
+.call-btn {
+    width: 75px; height: 75px;
+    border-radius: 50%;
+    border: none;
+    display: flex; justify-content: center; align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.call-btn svg {
+    width: 35px; height: 35px; color: white;
+}
+
+.accept-btn {
+    background-color: var(--accent-green);
+    animation: bounce 2s infinite;
+}
+
+.decline-btn {
+    background-color: var(--accent-red);
+    position: relative; /* For the dodging effect */
+}
+
+/* --- CHAT SCREEN --- */
+#chat-screen {
+    background: transparent;
+}
+
+.chat-header {
+    height: 80px;
+    background: rgba(20, 20, 20, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--glass-border);
+    display: flex; align-items: center;
+    padding: 30px 15px 10px 15px; /* Account for mobile notch */
+    z-index: 20;
+}
+
+.back-btn {
+    font-size: 2.5rem;
+    color: var(--accent-blue);
+    margin-right: 15px;
+    margin-top: -5px;
+}
+
+.header-avatar {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 1.2rem; margin-right: 10px;
+}
+
+.header-info h2 { font-size: 1rem; font-weight: 600; }
+.header-info p { font-size: 0.8rem; color: var(--text-muted); }
+
+.chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    scroll-behavior: smooth;
+}
+
+.message-wrapper {
+    display: flex;
+    align-items: flex-end;
+    margin-bottom: 5px;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slideUp 0.4s forwards;
+}
+
+.message-bubble {
+    background: var(--bubble-received);
+    padding: 12px 16px;
+    border-radius: 20px;
+    border-bottom-left-radius: 4px;
+    max-width: 80%;
+    font-size: 1.05rem;
+    line-height: 1.4;
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.chat-footer {
+    padding: 15px 20px 25px 20px;
+    background: rgba(20, 20, 20, 0.85);
+    backdrop-filter: blur(10px);
+}
+
+.fake-input {
+    background: #1c1c1e;
+    border-radius: 20px;
+    border: 1px solid #333;
+    padding: 10px 15px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+
+.fake-input .placeholder { color: #636366; font-size: 1rem; }
+.send-icon {
+    width: 28px; height: 28px;
+    background: var(--accent-blue);
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    font-weight: bold; color: white;
+}
+
+/* Typing Indicator Animation */
+.typing-indicator {
+    display: flex; gap: 4px; padding: 15px 18px;
+    background: var(--bubble-received);
+    border-radius: 20px; border-bottom-left-radius: 4px;
+    width: fit-content;
+}
+.dot {
+    width: 8px; height: 8px;
+    background-color: var(--text-muted);
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out both;
+}
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
+
+/* Keyframes */
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 154, 158, 0.5); }
+    70% { box-shadow: 0 0 0 30px rgba(255, 154, 158, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 154, 158, 0); }
+}
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+}
+@keyframes floatUpwards {
+    0% { transform: translateY(10vh) translateX(0) scale(0.8); opacity: 0; }
+    10% { opacity: var(--target-opacity); }
+    50% { transform: translateY(-50vh) translateX(var(--drift)) scale(1); }
+    90% { opacity: var(--target-opacity); }
+    100% { transform: translateY(-110vh) translateX(calc(var(--drift) * 1.5)) scale(1.1); opacity: 0; }
+}
+@keyframes slideUp {
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes typing {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
 }
