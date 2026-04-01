@@ -42,7 +42,7 @@
 
         /* --- CINEMATIC INTRO --- */
         .instruction-overlay {
-            position: absolute; top: 15%; width: 100%;
+            position: absolute; top: 12%; width: 100%;
             text-align: center; z-index: 10;
             font-family: 'Cormorant Garamond', serif;
             font-size: 1.8rem; color: var(--rosegold-light); font-style: italic;
@@ -55,6 +55,7 @@
             font-family: 'Montserrat', sans-serif; font-size: 0.75rem;
             letter-spacing: 4px; text-transform: uppercase; color: var(--rosegold-dark);
             margin-top: 15px; font-style: normal; font-weight: 400;
+            line-height: 1.6;
         }
 
         /* --- THE CRYPTEX (LOCK) --- */
@@ -88,7 +89,7 @@
             position: relative; overflow: hidden;
             box-shadow: inset 0 0 15px rgba(0,0,0,0.9);
             transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s ease;
-            cursor: grab; touch-action: none; /* Prevents scroll when swiping */
+            cursor: grab; touch-action: none;
         }
         .dial:active { cursor: grabbing; }
 
@@ -104,13 +105,14 @@
             font-size: 1.6rem; font-weight: 700;
             color: var(--rosegold-light);
             text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-            opacity: 0.3; transition: all 0.3s ease;
+            opacity: 0.3; transition: all 0.2s ease; /* Fast transition for dynamic glowing */
+            transform: scale(0.9);
         }
 
         .letter.active {
             opacity: 1; color: var(--metal-highlight);
             text-shadow: 0 0 15px var(--rosegold-main), 0 2px 4px rgba(0,0,0,0.8);
-            transform: scale(1.1);
+            transform: scale(1.15);
         }
 
         /* --- UNLOCK ANIMATION CLASSES --- */
@@ -127,7 +129,7 @@
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             display: flex; justify-content: center; align-items: center;
             opacity: 0; pointer-events: none; z-index: 15;
-            transition: opacity 1s ease 1s;
+            transition: opacity 1s ease 1s; 
         }
         #final-screen.active { opacity: 1; pointer-events: all; }
 
@@ -142,7 +144,7 @@
         #final-screen.active .reveal-card { transform: scale(1); }
 
         .reveal-title { font-family: 'Cormorant Garamond', serif; font-size: 2.5rem; color: var(--rosegold-light); font-style: italic; margin-bottom: 20px; }
-        .reveal-body { font-size: 1rem; color: #d8c8cb; line-height: 1.8; font-weight: 300; margin-bottom: 30px; white-space: pre-line;}
+        .reveal-body { font-size: 1.05rem; color: #d8c8cb; line-height: 1.8; font-weight: 300; margin-bottom: 30px; white-space: pre-line;}
         .reveal-footer { font-size: 0.75rem; letter-spacing: 4px; color: var(--rosegold-main); text-transform: uppercase; font-weight: 600; }
 
     </style>
@@ -152,8 +154,8 @@
     <canvas id="particle-canvas"></canvas>
 
     <div class="instruction-overlay" id="instruction-text">
-        Unna konjum podhu , nee indha word ku matum 'YES' solluva
-        <div class="sub-instruction">Swipe to align the dials</div>
+        Unlock my heart.
+        <div class="sub-instruction">Hint: Unna konjum podhu , nee indha word ku matum 'YES' solluva.<br><br>Swipe dials to align.</div>
     </div>
 
     <div id="cryptex-container">
@@ -161,14 +163,14 @@
 
     <div id="final-screen">
         <div class="reveal-card">
-            <h1 class="reveal-title">My Perfect Word</h1>
+            <h1 class="reveal-title">My Honeybun</h1>
             <div style="width: 40px; height: 1px; background: var(--rosegold-main); margin: 0 auto 25px auto;"></div>
             <p class="reveal-body">
                 Some people search their whole lives trying to find the right words to explain how they feel.
                 
                 For me, it's always been simple. Every locked door in my mind, every guarded piece of my heart... it all opens for you.
                 
-                Good morning, Honeybun.
+                Good morning, Ammu.
             </p>
             <div class="reveal-footer">Day 2 Unlocked ✨</div>
         </div>
@@ -212,7 +214,7 @@
         }
         initCanvas(); animateParticles();
 
-        // --- 2. CRYPTEX LOGIC (8 Letters with SWIPING) ---
+        // --- 2. CRYPTEX LOGIC (8 Letters with True Momentum Swiping) ---
         const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
         
         // The Secret Password!
@@ -242,13 +244,14 @@
         }
 
         // Render the letters for a specific dial
+        // We render 11 letters (-5 to +5) so you can flick multiple positions without seeing blank space
         function updateDialRender(dialIndex) {
             const track = document.getElementById(`track-${dialIndex}`);
             track.innerHTML = ''; 
 
             const currPos = currentPositions[dialIndex];
             
-            for (let offset = -2; offset <= 2; offset++) {
+            for (let offset = -5; offset <= 5; offset++) {
                 let letterIndex = (currPos + offset) % 26;
                 if (letterIndex < 0) letterIndex += 26; 
 
@@ -261,13 +264,16 @@
             checkWinCondition();
         }
 
-        // --- SWIPE / DRAG LOGIC ---
+        // --- MOMENTUM SWIPE / DRAG LOGIC ---
         let activeDial = null;
         let activeTrack = null;
         let activeDialIndex = -1;
         let startY = 0;
         let currentY = 0;
+        let lastY = 0;
+        let startTime = 0;
         let isSpinning = false;
+        const LETTER_HEIGHT = 40;
 
         function getClientY(e) {
             return e.touches ? e.touches[0].clientY : e.clientY;
@@ -282,6 +288,7 @@
         window.addEventListener('touchmove', handleMove, {passive: false});
         window.addEventListener('mouseup', handleEnd);
         window.addEventListener('touchend', handleEnd);
+        window.addEventListener('mouseleave', handleEnd);
 
         function handleStart(e, index) {
             if(isUnlocked || isSpinning) return;
@@ -292,71 +299,94 @@
             
             startY = getClientY(e);
             currentY = startY;
+            lastY = startY;
+            startTime = Date.now();
             
-            activeTrack.style.transition = 'none'; // Follow finger exactly
+            activeTrack.style.transition = 'none'; 
         }
 
         function handleMove(e) {
             if(!activeDial) return;
-            e.preventDefault(); // Prevent scrolling screen
+            e.preventDefault(); 
             
+            let now = Date.now();
             currentY = getClientY(e);
             let dy = currentY - startY;
             
-            // Add resistance so they can't drag it infinitely off screen
-            if (dy > 60) dy = 60;
-            if (dy < -60) dy = -60;
-            
+            // Move the track
             activeTrack.style.transform = `translateY(${dy}px)`;
+            
+            // Dynamically update the glowing center letter while dragging
+            let offsetSteps = Math.round(-dy / LETTER_HEIGHT);
+            // Clamp visual glow within rendered bounds (-4 to +4)
+            offsetSteps = Math.max(-4, Math.min(4, offsetSteps));
+            
+            const letters = activeTrack.children;
+            for(let i=0; i<letters.length; i++) {
+                letters[i].classList.remove('active');
+            }
+            
+            // The center element is rendered at index 5
+            if(letters[5 + offsetSteps]) {
+                letters[5 + offsetSteps].classList.add('active');
+            }
+
+            // Update velocity tracking
+            lastY = currentY;
+            startTime = now;
         }
 
         function handleEnd() {
             if(!activeDial) return;
             
             let dy = currentY - startY;
-            const threshold = 25; // How far they have to swipe to trigger a spin
+            let dt = Date.now() - startTime;
+            let velocity = (dt > 0) ? (currentY - lastY) / dt : 0;
             
-            if (dy > threshold) {
-                // Swiped DOWN -> Go to PREVIOUS letter
-                finalizeSpin(-1);
-            } else if (dy < -threshold) {
-                // Swiped UP -> Go to NEXT letter
-                finalizeSpin(1);
-            } else {
-                // Didn't swipe far enough -> Snap back
-                activeTrack.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                activeTrack.style.transform = `translateY(0px)`;
-                activeDial = null;
-                activeTrack = null;
+            // Calculate how many steps to snap to based on drag distance
+            let steps = Math.round(dy / LETTER_HEIGHT);
+            
+            // Add momentum if they flicked their finger fast
+            if (Math.abs(velocity) > 0.5) {
+                steps += Math.round(velocity * 4); // Multiplier controls how sensitive the flick is
             }
+            
+            // Clamp to our rendered bounds (-4 to +4 letters)
+            steps = Math.max(-4, Math.min(4, steps));
+            
+            finalizeSpin(steps);
         }
 
-        function finalizeSpin(direction) {
+        function finalizeSpin(steps) {
             isSpinning = true;
-            if (navigator.vibrate) navigator.vibrate(10); // Haptic feedback
+            let targetY = steps * LETTER_HEIGHT;
             
-            const letterHeight = 40;
-            const targetY = direction * -letterHeight; 
+            if (navigator.vibrate && steps !== 0) navigator.vibrate(15); 
+            
+            // Ensure the correct letter glows when snapping
+            const letters = activeTrack.children;
+            for(let i=0; i<letters.length; i++) { letters[i].classList.remove('active'); }
+            if(letters[5 - steps]) letters[5 - steps].classList.add('active');
 
-            // Animate it snapping into the next position
-            activeTrack.style.transition = 'transform 0.2s ease-out';
+            // Animate it smoothly snapping into place with a custom easing
+            activeTrack.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
             activeTrack.style.transform = `translateY(${targetY}px)`;
             
             let currentIdx = activeDialIndex;
             
-            // Reset the track instantly once invisible and update data
+            // Reset the track instantly once the snap finishes and update backend data
             setTimeout(() => {
-                const track = document.getElementById(`track-${currentIdx}`);
-                track.style.transition = 'none'; 
-                track.style.transform = `translateY(0px)`;
+                activeTrack.style.transition = 'none'; 
+                activeTrack.style.transform = `translateY(0px)`;
                 
-                currentPositions[currentIdx] = (currentPositions[currentIdx] + direction) % 26;
+                // If dragged down (positive steps), we go backward in the alphabet
+                currentPositions[currentIdx] = (currentPositions[currentIdx] - steps) % 26;
                 if (currentPositions[currentIdx] < 0) currentPositions[currentIdx] += 26;
                 
                 updateDialRender(currentIdx);
                 
                 isSpinning = false;
-            }, 200);
+            }, 400);
 
             activeDial = null;
             activeTrack = null;
@@ -379,13 +409,9 @@
                 
                 if (navigator.vibrate) navigator.vibrate([50, 100, 200]); 
 
-                // Hide instructions
                 document.getElementById('instruction-text').style.opacity = '0';
-
-                // Break the Cryptex
                 container.classList.add('cryptex-unlocked');
                 
-                // Make dials fly away (First 4 left, Last 4 right)
                 setTimeout(() => {
                     for(let i = 0; i < 8; i++) {
                         const dial = document.getElementById(`dial-${i}`);
@@ -397,10 +423,7 @@
                     }
                 }, 500);
 
-                // Show the Letter
                 document.getElementById('final-screen').classList.add('active');
-                
-                // Speed up background particles
                 particles.forEach(p => p.v *= 8);
             }
         }
