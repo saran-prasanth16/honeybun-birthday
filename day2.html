@@ -20,7 +20,7 @@
         * {
             margin: 0; padding: 0; box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
-            user-select: none;
+            user-select: none; -webkit-user-drag: none;
         }
 
         body {
@@ -60,14 +60,14 @@
         /* --- THE CRYPTEX (LOCK) --- */
         #cryptex-container {
             position: relative; z-index: 20;
-            display: flex; gap: 4px; /* Reduced gap for 8 letters */
-            padding: 15px; /* Reduced padding */
+            display: flex; gap: 4px;
+            padding: 15px;
             background: linear-gradient(90deg, #0a0506 0%, #1f0f13 50%, #0a0506 100%);
             border: 2px solid var(--rosegold-dark);
             border-radius: 12px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 0 20px rgba(0,0,0,0.8);
             transition: all 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
-            max-width: 95vw; /* Ensure it fits on mobile */
+            max-width: 95vw;
         }
 
         /* The Gold Bar Indicator across the middle */
@@ -78,7 +78,7 @@
             box-shadow: 0 0 10px var(--rosegold-main);
         }
 
-        /* Individual Dials (Thinner for 8 letters) */
+        /* Individual Dials */
         .dial {
             width: 36px; height: 120px;
             background: linear-gradient(180deg, #050304 0%, #3b1d24 20%, #4a242c 50%, #3b1d24 80%, #050304 100%);
@@ -88,23 +88,17 @@
             position: relative; overflow: hidden;
             box-shadow: inset 0 0 15px rgba(0,0,0,0.9);
             transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s ease;
+            cursor: grab; touch-action: none; /* Prevents scroll when swiping */
         }
-
-        /* Top and Bottom Tap Zones for Spinning */
-        .tap-zone {
-            position: absolute; width: 100%; height: 50%;
-            z-index: 30; cursor: pointer;
-        }
-        .tap-up { top: 0; }
-        .tap-down { bottom: 0; }
+        .dial:active { cursor: grabbing; }
 
         .letter-track {
             display: flex; flex-direction: column; align-items: center;
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            /* Transition applied dynamically via JS during snapping */
         }
 
         .letter {
-            height: 40px; /* 120 / 3 */
+            height: 40px;
             display: flex; justify-content: center; align-items: center;
             font-family: 'Courier Prime', monospace;
             font-size: 1.6rem; font-weight: 700;
@@ -133,7 +127,7 @@
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             display: flex; justify-content: center; align-items: center;
             opacity: 0; pointer-events: none; z-index: 15;
-            transition: opacity 1s ease 1s; /* 1s delay to let lock open */
+            transition: opacity 1s ease 1s;
         }
         #final-screen.active { opacity: 1; pointer-events: all; }
 
@@ -159,7 +153,7 @@
 
     <div class="instruction-overlay" id="instruction-text">
         Unna konjum podhu , nee indha word ku matum 'YES' solluva
-        <div class="sub-instruction">Align the dials</div>
+        <div class="sub-instruction">Swipe to align the dials</div>
     </div>
 
     <div id="cryptex-container">
@@ -170,22 +164,11 @@
             <h1 class="reveal-title">My Perfect Word</h1>
             <div style="width: 40px; height: 1px; background: var(--rosegold-main); margin: 0 auto 25px auto;"></div>
             <p class="reveal-body">
-                They say it’s the big moments
-				that make someone special.
-
-				But I think it’s the small things.
-
-				The way you talk…
-				the way you react…
-				the way you just be you.
-
-				Those little things,
-				they stay longer than they should.
-
-				And somehow…
-				they mean more than I can explain.
-
-				Good morning, Ammu.
+                Some people search their whole lives trying to find the right words to explain how they feel.
+                
+                For me, it's always been simple. Every locked door in my mind, every guarded piece of my heart... it all opens for you.
+                
+                Good morning, Honeybun.
             </p>
             <div class="reveal-footer">Day 2 Unlocked ✨</div>
         </div>
@@ -229,13 +212,12 @@
         }
         initCanvas(); animateParticles();
 
-        // --- 2. CRYPTEX LOGIC (8 Letters) ---
+        // --- 2. CRYPTEX LOGIC (8 Letters with SWIPING) ---
         const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
         
-        // The Secret Password! (8 Letters)
+        // The Secret Password!
         const targetWord = ["H", "O", "N", "E", "Y", "B", "U", "N"]; 
         
-        // Random starting positions for 8 dials
         const startingPositions = Array.from({length: 8}, () => Math.floor(Math.random() * 26));
 
         let currentPositions = [...startingPositions];
@@ -248,25 +230,15 @@
             dial.className = 'dial';
             dial.id = `dial-${i}`;
 
-            // Invisible Tap Zones
-            const tapUp = document.createElement('div');
-            tapUp.className = 'tap-zone tap-up';
-            tapUp.onclick = () => spinDial(i, -1); // Spin Up
-
-            const tapDown = document.createElement('div');
-            tapDown.className = 'tap-zone tap-down';
-            tapDown.onclick = () => spinDial(i, 1); // Spin Down
-
             const track = document.createElement('div');
             track.className = 'letter-track';
             track.id = `track-${i}`;
 
-            dial.appendChild(tapUp);
-            dial.appendChild(tapDown);
             dial.appendChild(track);
             container.appendChild(dial);
 
             updateDialRender(i);
+            attachSwipeLogic(dial, i);
         }
 
         // Render the letters for a specific dial
@@ -289,27 +261,105 @@
             checkWinCondition();
         }
 
-        // Handle the spinning math
-        function spinDial(dialIndex, direction) {
-            if (isUnlocked) return; 
+        // --- SWIPE / DRAG LOGIC ---
+        let activeDial = null;
+        let activeTrack = null;
+        let activeDialIndex = -1;
+        let startY = 0;
+        let currentY = 0;
+        let isSpinning = false;
+
+        function getClientY(e) {
+            return e.touches ? e.touches[0].clientY : e.clientY;
+        }
+
+        function attachSwipeLogic(dial, index) {
+            dial.addEventListener('mousedown', (e) => handleStart(e, index));
+            dial.addEventListener('touchstart', (e) => handleStart(e, index), {passive: false});
+        }
+
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', handleMove, {passive: false});
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchend', handleEnd);
+
+        function handleStart(e, index) {
+            if(isUnlocked || isSpinning) return;
             
-            if (navigator.vibrate) navigator.vibrate(10);
+            activeDialIndex = index;
+            activeDial = document.getElementById(`dial-${index}`);
+            activeTrack = document.getElementById(`track-${index}`);
+            
+            startY = getClientY(e);
+            currentY = startY;
+            
+            activeTrack.style.transition = 'none'; // Follow finger exactly
+        }
 
-            const track = document.getElementById(`track-${dialIndex}`);
-            const letterHeight = 40; // Updated to match CSS height
-            track.style.transform = `translateY(${direction * -letterHeight}px)`;
+        function handleMove(e) {
+            if(!activeDial) return;
+            e.preventDefault(); // Prevent scrolling screen
+            
+            currentY = getClientY(e);
+            let dy = currentY - startY;
+            
+            // Add resistance so they can't drag it infinitely off screen
+            if (dy > 60) dy = 60;
+            if (dy < -60) dy = -60;
+            
+            activeTrack.style.transform = `translateY(${dy}px)`;
+        }
 
+        function handleEnd() {
+            if(!activeDial) return;
+            
+            let dy = currentY - startY;
+            const threshold = 25; // How far they have to swipe to trigger a spin
+            
+            if (dy > threshold) {
+                // Swiped DOWN -> Go to PREVIOUS letter
+                finalizeSpin(-1);
+            } else if (dy < -threshold) {
+                // Swiped UP -> Go to NEXT letter
+                finalizeSpin(1);
+            } else {
+                // Didn't swipe far enough -> Snap back
+                activeTrack.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                activeTrack.style.transform = `translateY(0px)`;
+                activeDial = null;
+                activeTrack = null;
+            }
+        }
+
+        function finalizeSpin(direction) {
+            isSpinning = true;
+            if (navigator.vibrate) navigator.vibrate(10); // Haptic feedback
+            
+            const letterHeight = 40;
+            const targetY = direction * -letterHeight; 
+
+            // Animate it snapping into the next position
+            activeTrack.style.transition = 'transform 0.2s ease-out';
+            activeTrack.style.transform = `translateY(${targetY}px)`;
+            
+            let currentIdx = activeDialIndex;
+            
+            // Reset the track instantly once invisible and update data
             setTimeout(() => {
+                const track = document.getElementById(`track-${currentIdx}`);
                 track.style.transition = 'none'; 
                 track.style.transform = `translateY(0px)`;
                 
-                currentPositions[dialIndex] = (currentPositions[dialIndex] + direction) % 26;
-                if (currentPositions[dialIndex] < 0) currentPositions[dialIndex] += 26;
+                currentPositions[currentIdx] = (currentPositions[currentIdx] + direction) % 26;
+                if (currentPositions[currentIdx] < 0) currentPositions[currentIdx] += 26;
                 
-                updateDialRender(dialIndex);
+                updateDialRender(currentIdx);
                 
-                setTimeout(() => track.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)', 20);
-            }, 300); 
+                isSpinning = false;
+            }, 200);
+
+            activeDial = null;
+            activeTrack = null;
         }
 
         // --- 3. WIN CONDITION & FINALE ---
