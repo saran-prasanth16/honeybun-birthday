@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Day 2 ✨</title>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@200;300;400;500&family=Courier+Prime:wght@400;700&display=swap');
+
+        :root {
+            --bg-deep: #050304;
+            --rosegold-light: #e0bfb8;
+            --rosegold-main: #b76e79;
+            --rosegold-dark: #63333d;
+            --metal-highlight: #ffede8;
+            --text-light: #f3e5e5;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            background-image: radial-gradient(circle at 50% 50%, #1a0f12 0%, var(--bg-deep) 100%);
+            color: var(--text-light);
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* --- BACKGROUND DUST --- */
+        #particle-canvas {
+            position: absolute; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 1; pointer-events: none;
+        }
+
+        /* --- CINEMATIC INTRO --- */
+        .instruction-overlay {
+            position: absolute; top: 15%; width: 100%;
+            text-align: center; z-index: 10;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.8rem; color: var(--rosegold-light); font-style: italic;
+            text-shadow: 0 0 15px rgba(183, 110, 121, 0.6);
+            pointer-events: none; transition: opacity 1s ease;
+            padding: 0 20px; line-height: 1.4;
+        }
+
+        .sub-instruction {
+            font-family: 'Montserrat', sans-serif; font-size: 0.75rem;
+            letter-spacing: 4px; text-transform: uppercase; color: var(--rosegold-dark);
+            margin-top: 15px; font-style: normal; font-weight: 400;
+        }
+
+        /* --- THE CRYPTEX (LOCK) --- */
+        #cryptex-container {
+            position: relative; z-index: 20;
+            display: flex; gap: 4px; /* Reduced gap for 8 letters */
+            padding: 15px; /* Reduced padding */
+            background: linear-gradient(90deg, #0a0506 0%, #1f0f13 50%, #0a0506 100%);
+            border: 2px solid var(--rosegold-dark);
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 0 20px rgba(0,0,0,0.8);
+            transition: all 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            max-width: 95vw; /* Ensure it fits on mobile */
+        }
+
+        /* The Gold Bar Indicator across the middle */
+        #cryptex-container::after {
+            content: ''; position: absolute; top: 50%; left: -10px; right: -10px;
+            height: 2px; background: var(--rosegold-main);
+            transform: translateY(-50%); z-index: 25; pointer-events: none;
+            box-shadow: 0 0 10px var(--rosegold-main);
+        }
+
+        /* Individual Dials (Thinner for 8 letters) */
+        .dial {
+            width: 36px; height: 120px;
+            background: linear-gradient(180deg, #050304 0%, #3b1d24 20%, #4a242c 50%, #3b1d24 80%, #050304 100%);
+            border: 1px solid var(--rosegold-dark);
+            border-radius: 6px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            position: relative; overflow: hidden;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.9);
+            transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s ease;
+        }
+
+        /* Top and Bottom Tap Zones for Spinning */
+        .tap-zone {
+            position: absolute; width: 100%; height: 50%;
+            z-index: 30; cursor: pointer;
+        }
+        .tap-up { top: 0; }
+        .tap-down { bottom: 0; }
+
+        .letter-track {
+            display: flex; flex-direction: column; align-items: center;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .letter {
+            height: 40px; /* 120 / 3 */
+            display: flex; justify-content: center; align-items: center;
+            font-family: 'Courier Prime', monospace;
+            font-size: 1.6rem; font-weight: 700;
+            color: var(--rosegold-light);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            opacity: 0.3; transition: all 0.3s ease;
+        }
+
+        .letter.active {
+            opacity: 1; color: var(--metal-highlight);
+            text-shadow: 0 0 15px var(--rosegold-main), 0 2px 4px rgba(0,0,0,0.8);
+            transform: scale(1.1);
+        }
+
+        /* --- UNLOCK ANIMATION CLASSES --- */
+        .cryptex-unlocked {
+            background: transparent !important; border-color: transparent !important; box-shadow: none !important;
+        }
+        .cryptex-unlocked::after { opacity: 0; transition: opacity 0.5s; }
+        
+        .dial.fly-left { transform: translateX(-150px) rotateY(-45deg) translateY(-20px); opacity: 0; pointer-events: none; }
+        .dial.fly-right { transform: translateX(150px) rotateY(45deg) translateY(20px); opacity: 0; pointer-events: none; }
+
+        /* --- FINAL REVEAL CARD --- */
+        #final-screen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; z-index: 15;
+            transition: opacity 1s ease 1s; /* 1s delay to let lock open */
+        }
+        #final-screen.active { opacity: 1; pointer-events: all; }
+
+        .reveal-card {
+            background: linear-gradient(180deg, rgba(20, 10, 12, 0.85) 0%, rgba(10, 5, 6, 0.95) 100%);
+            border: 1px solid rgba(183, 110, 121, 0.3); border-radius: 24px;
+            padding: 50px 30px; text-align: center; width: 85%; max-width: 400px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 40px rgba(183, 110, 121, 0.15);
+            backdrop-filter: blur(15px);
+            transform: scale(0.9); transition: transform 1.5s cubic-bezier(0.25, 0.8, 0.25, 1) 1s;
+        }
+        #final-screen.active .reveal-card { transform: scale(1); }
+
+        .reveal-title { font-family: 'Cormorant Garamond', serif; font-size: 2.5rem; color: var(--rosegold-light); font-style: italic; margin-bottom: 20px; }
+        .reveal-body { font-size: 1rem; color: #d8c8cb; line-height: 1.8; font-weight: 300; margin-bottom: 30px; white-space: pre-line;}
+        .reveal-footer { font-size: 0.75rem; letter-spacing: 4px; color: var(--rosegold-main); text-transform: uppercase; font-weight: 600; }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="instruction-overlay" id="instruction-text">
+        Unna konjum podhu , nee indha word ku matum 'YES' solluva
+        <div class="sub-instruction">Align the dials</div>
+    </div>
+
+    <div id="cryptex-container">
+        </div>
+
+    <div id="final-screen">
+        <div class="reveal-card">
+            <h1 class="reveal-title">My Perfect Word</h1>
+            <div style="width: 40px; height: 1px; background: var(--rosegold-main); margin: 0 auto 25px auto;"></div>
+            <p class="reveal-body">
+                They say it’s the big moments
+				that make someone special.
+
+				But I think it’s the small things.
+
+				The way you talk…
+				the way you react…
+				the way you just be you.
+
+				Those little things,
+				they stay longer than they should.
+
+				And somehow…
+				they mean more than I can explain.
+
+				Good morning, Ammu.
+            </p>
+            <div class="reveal-footer">Day 2 Unlocked ✨</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. AMBIENT PARTICLES ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function initCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            particles = [];
+            for (let i = 0; i < 40; i++) {
+                particles.push({
+                    x: Math.random() * width, y: Math.random() * height,
+                    r: Math.random() * 1.5, alpha: Math.random(),
+                    v: Math.random() * 0.3 + 0.1,
+                    pulsate: Math.random() * 0.02 + 0.01
+                });
+            }
+        }
+        window.addEventListener('resize', initCanvas);
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.y -= p.v;
+                if (p.y < -10) { p.y = height + 10; p.x = Math.random() * width; }
+                p.alpha += p.pulsate;
+                if (p.alpha >= 0.8 || p.alpha <= 0.1) p.pulsate *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(224, 191, 184, ${p.alpha})`; 
+                ctx.fill();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        initCanvas(); animateParticles();
+
+        // --- 2. CRYPTEX LOGIC (8 Letters) ---
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+        
+        // The Secret Password! (8 Letters)
+        const targetWord = ["H", "O", "N", "E", "Y", "B", "U", "N"]; 
+        
+        // Random starting positions for 8 dials
+        const startingPositions = Array.from({length: 8}, () => Math.floor(Math.random() * 26));
+
+        let currentPositions = [...startingPositions];
+        const container = document.getElementById('cryptex-container');
+        let isUnlocked = false;
+
+        // Build the Dials
+        for (let i = 0; i < 8; i++) {
+            const dial = document.createElement('div');
+            dial.className = 'dial';
+            dial.id = `dial-${i}`;
+
+            // Invisible Tap Zones
+            const tapUp = document.createElement('div');
+            tapUp.className = 'tap-zone tap-up';
+            tapUp.onclick = () => spinDial(i, -1); // Spin Up
+
+            const tapDown = document.createElement('div');
+            tapDown.className = 'tap-zone tap-down';
+            tapDown.onclick = () => spinDial(i, 1); // Spin Down
+
+            const track = document.createElement('div');
+            track.className = 'letter-track';
+            track.id = `track-${i}`;
+
+            dial.appendChild(tapUp);
+            dial.appendChild(tapDown);
+            dial.appendChild(track);
+            container.appendChild(dial);
+
+            updateDialRender(i);
+        }
+
+        // Render the letters for a specific dial
+        function updateDialRender(dialIndex) {
+            const track = document.getElementById(`track-${dialIndex}`);
+            track.innerHTML = ''; 
+
+            const currPos = currentPositions[dialIndex];
+            
+            for (let offset = -2; offset <= 2; offset++) {
+                let letterIndex = (currPos + offset) % 26;
+                if (letterIndex < 0) letterIndex += 26; 
+
+                const letterEl = document.createElement('div');
+                letterEl.className = `letter ${offset === 0 ? 'active' : ''}`;
+                letterEl.innerText = alphabet[letterIndex];
+                track.appendChild(letterEl);
+            }
+
+            checkWinCondition();
+        }
+
+        // Handle the spinning math
+        function spinDial(dialIndex, direction) {
+            if (isUnlocked) return; 
+            
+            if (navigator.vibrate) navigator.vibrate(10);
+
+            const track = document.getElementById(`track-${dialIndex}`);
+            const letterHeight = 40; // Updated to match CSS height
+            track.style.transform = `translateY(${direction * -letterHeight}px)`;
+
+            setTimeout(() => {
+                track.style.transition = 'none'; 
+                track.style.transform = `translateY(0px)`;
+                
+                currentPositions[dialIndex] = (currentPositions[dialIndex] + direction) % 26;
+                if (currentPositions[dialIndex] < 0) currentPositions[dialIndex] += 26;
+                
+                updateDialRender(dialIndex);
+                
+                setTimeout(() => track.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)', 20);
+            }, 300); 
+        }
+
+        // --- 3. WIN CONDITION & FINALE ---
+        function checkWinCondition() {
+            if (isUnlocked) return;
+
+            let isWin = true;
+            for (let i = 0; i < 8; i++) {
+                if (alphabet[currentPositions[i]] !== targetWord[i]) {
+                    isWin = false;
+                    break;
+                }
+            }
+
+            if (isWin) {
+                isUnlocked = true;
+                
+                if (navigator.vibrate) navigator.vibrate([50, 100, 200]); 
+
+                // Hide instructions
+                document.getElementById('instruction-text').style.opacity = '0';
+
+                // Break the Cryptex
+                container.classList.add('cryptex-unlocked');
+                
+                // Make dials fly away (First 4 left, Last 4 right)
+                setTimeout(() => {
+                    for(let i = 0; i < 8; i++) {
+                        const dial = document.getElementById(`dial-${i}`);
+                        if(i < 4) {
+                            dial.classList.add('fly-left');
+                        } else {
+                            dial.classList.add('fly-right');
+                        }
+                    }
+                }, 500);
+
+                // Show the Letter
+                document.getElementById('final-screen').classList.add('active');
+                
+                // Speed up background particles
+                particles.forEach(p => p.v *= 8);
+            }
+        }
+    </script>
+</body>
+</html>
