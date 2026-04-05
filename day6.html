@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Origami Letter ✨</title>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
+
+        :root {
+            --bg-deep: #050203;
+            --bg-light: #1c0a0f;
+            --rosegold-light: #e0bfb8;
+            --rosegold-main: #b76e79;
+            --rosegold-dark: #804a53;
+            --paper-color: #fdfbfb;
+            --text-light: #f3e5e5;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none; -webkit-user-drag: none;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            background-image: radial-gradient(circle at 50% 50%, var(--bg-light) 0%, var(--bg-deep) 100%);
+            color: var(--text-light);
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+            height: 100dvh; width: 100vw;
+            position: fixed; top: 0; left: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        /* --- AMBIENT DUST --- */
+        #particle-canvas {
+            position: absolute; top: 0; left: 0;
+            width: 100vw; height: 100dvh;
+            z-index: 1; pointer-events: none;
+        }
+
+        /* --- UI HEADERS --- */
+        .instruction-overlay {
+            position: absolute; top: 10%; width: 100%;
+            text-align: center; z-index: 5;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(1.8rem, 6vw, 2.5rem); 
+            color: var(--rosegold-light); font-style: italic;
+            text-shadow: 0 0 15px rgba(183, 110, 121, 0.6);
+            pointer-events: none; transition: opacity 1s ease;
+        }
+
+        .sub-instruction {
+            font-family: 'Montserrat', sans-serif; 
+            font-size: clamp(0.65rem, 2.5vw, 0.8rem);
+            letter-spacing: 4px; text-transform: uppercase; color: var(--rosegold-main);
+            margin-top: 10px; font-weight: 400; font-style: normal;
+            animation: pulseHint 2s infinite alternate;
+        }
+
+        /* --- 3D ENVELOPE MECHANICS --- */
+        #scene {
+            position: relative;
+            width: clamp(280px, 80vw, 400px);
+            height: clamp(180px, 50vw, 260px);
+            perspective: 1500px; /* Gives the 3D folding depth */
+            z-index: 20;
+            margin-top: 5vh;
+            transition: transform 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        #envelope {
+            position: absolute; width: 100%; height: 100%;
+            transform-style: preserve-3d;
+            cursor: pointer;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            background: linear-gradient(135deg, #1f0f13, #0a0406);
+            transition: transform 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* The physical letter inside */
+        .letter-paper {
+            position: absolute; top: 5%; left: 5%; width: 90%; height: 90%;
+            background: var(--paper-color);
+            border-radius: 4px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+            z-index: 2; /* Sits above the back, below the flaps */
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 20px; text-align: center;
+            transition: all 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transform-origin: bottom center;
+        }
+
+        .letter-content-preview {
+            font-family: 'Cormorant Garamond', serif; font-size: 1.2rem;
+            color: #333; font-style: italic; opacity: 0.5;
+            background: linear-gradient(to bottom, #333 0%, transparent 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        /* The Flaps */
+        .flap {
+            position: absolute;
+            transform-style: preserve-3d;
+            transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1), filter 1s ease, z-index 0s 0.3s;
+            backface-visibility: hidden;
+            background: linear-gradient(135deg, #b76e79 0%, #804a53 100%);
+        }
+
+        /* Using clip-path to cut rectangles into perfect envelope flap shapes */
+        .flap-bottom {
+            bottom: 0; left: 0; width: 100%; height: 65%;
+            transform-origin: bottom; z-index: 5;
+            clip-path: polygon(0 100%, 100% 100%, 50% 0);
+            background: linear-gradient(0deg, #63333d 0%, #b76e79 100%);
+            filter: brightness(0.9);
+        }
+
+        .flap-left {
+            top: 0; left: 0; width: 60%; height: 100%;
+            transform-origin: left; z-index: 4;
+            clip-path: polygon(0 0, 100% 50%, 0 100%);
+            filter: brightness(0.95);
+        }
+
+        .flap-right {
+            top: 0; right: 0; width: 60%; height: 100%;
+            transform-origin: right; z-index: 4;
+            clip-path: polygon(100% 0, 100% 100%, 0 50%);
+            filter: brightness(0.95);
+        }
+
+        .flap-top {
+            top: 0; left: 0; width: 100%; height: 60%;
+            transform-origin: top; z-index: 6; /* Top flap is on the very top */
+            clip-path: polygon(0 0, 100% 0, 50% 100%);
+            background: linear-gradient(180deg, #e0bfb8 0%, #b76e79 100%);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        /* The Wax Seal */
+        .wax-seal {
+            position: absolute; bottom: 5%; left: 50%;
+            transform: translateX(-50%);
+            width: 45px; height: 45px;
+            background: radial-gradient(circle at 30% 30%, #ffb3c1 0%, #ff2a5f 70%, #800020 100%);
+            border-radius: 50%;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.6), 0 0 20px rgba(255, 42, 95, 0.4);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.2rem; transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        /* --- FOLDING ANIMATION STATES --- */
+        /* Step 1: Top opens */
+        .open-top .flap-top { transform: rotateX(180deg); filter: brightness(0.6); z-index: 1; }
+        .open-top .wax-seal { opacity: 0; transform: translateX(-50%) scale(1.5); }
+
+        /* Step 2: Sides open */
+        .open-sides .flap-left { transform: rotateY(-180deg); filter: brightness(0.6); }
+        .open-sides .flap-right { transform: rotateY(180deg); filter: brightness(0.6); }
+
+        /* Step 3: Bottom opens */
+        .open-bottom .flap-bottom { transform: rotateX(-180deg); filter: brightness(0.6); }
+
+        /* Step 4: Letter Pulls Out */
+        .extract-letter #envelope {
+            transform: translateY(100vh) rotateZ(10deg); /* Envelope drops away */
+            opacity: 0;
+            transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s ease 0.5s;
+        }
+        
+        .extract-letter .letter-paper {
+            /* Pull out, scale up, and flip to front */
+            transform: translateY(-40vh) scale(1.4);
+            z-index: 50; box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 50px rgba(255, 255, 255, 0.2);
+            opacity: 0; /* Fade out the prop letter as the real modal fades in */
+        }
+
+        /* --- MAGIC SPARKS --- */
+        .spark {
+            position: absolute; width: 4px; height: 4px;
+            background: var(--rosegold-light); border-radius: 50%;
+            box-shadow: 0 0 10px var(--rosegold-light);
+            z-index: 40; opacity: 0; pointer-events: none;
+        }
+
+        /* --- FINAL REVEAL CARD --- */
+        #final-screen {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; z-index: 100;
+            transition: opacity 1.5s ease; 
+        }
+        #final-screen.active { opacity: 1; pointer-events: all; }
+
+        .reveal-card {
+            background: linear-gradient(180deg, rgba(20, 10, 12, 0.85) 0%, rgba(10, 5, 6, 0.95) 100%);
+            border: 1px solid rgba(183, 110, 121, 0.3); border-radius: 24px;
+            padding: clamp(30px, 8vw, 50px) clamp(20px, 6vw, 30px);
+            text-align: center; width: 88%; max-width: 400px;
+            max-height: 85dvh; overflow-y: auto; scrollbar-width: none;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 40px rgba(183, 110, 121, 0.15);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            transform: scale(0.9) translateY(20px); transition: transform 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .reveal-card::-webkit-scrollbar { display: none; }
+        #final-screen.active .reveal-card { transform: scale(1) translateY(0); }
+
+        .reveal-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 8vw, 2.8rem); color: var(--rosegold-light); font-style: italic; margin-bottom: 15px; }
+        .reveal-body { font-size: clamp(0.95rem, 4vw, 1.1rem); color: #d8c8cb; line-height: 1.8; font-weight: 300; margin-bottom: 30px; white-space: pre-line; }
+        .reveal-footer { font-size: 0.75rem; letter-spacing: 4px; color: var(--rosegold-main); text-transform: uppercase; font-weight: 600; }
+
+        @keyframes pulseHint { 0% { opacity: 0.4; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="instruction-overlay" id="instruction-text">
+        Handle with care.
+        <div class="sub-instruction" id="hint-text">Tap the seal to open</div>
+    </div>
+
+    <div id="scene">
+        <div id="envelope">
+            <div class="letter-paper" id="inner-letter">
+                <div class="letter-content-preview">Dearest Ammu...</div>
+            </div>
+
+            <div class="flap flap-left"></div>
+            <div class="flap flap-right"></div>
+            <div class="flap flap-bottom"></div>
+            <div class="flap flap-top">
+                <div class="wax-seal" id="seal">❤️</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="final-screen">
+        <div class="reveal-card">
+            <h1 class="reveal-title">Unfolded</h1>
+            <div style="width: 40px; height: 1px; background: var(--rosegold-main); margin: 0 auto 20px auto;"></div>
+            <p class="reveal-body">
+                I used to keep my heart closed off, folded up tightly where no one could see it.
+                
+                But layer by layer, with your patience and your warmth, you opened me up completely. 
+                
+                I am entirely yours, Honeybun.
+            </p>
+            <div class="reveal-footer">Day 4 Unlocked ✨</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. AMBIENT PARTICLES ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function initCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            particles = [];
+            for (let i = 0; i < 40; i++) {
+                particles.push({
+                    x: Math.random() * width, y: Math.random() * height,
+                    r: Math.random() * 1.5, alpha: Math.random(),
+                    v: Math.random() * 0.3 + 0.1, pulsate: Math.random() * 0.02 + 0.01
+                });
+            }
+        }
+        window.addEventListener('resize', initCanvas);
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.y -= p.v;
+                if (p.y < -10) { p.y = height + 10; p.x = Math.random() * width; }
+                p.alpha += p.pulsate;
+                if (p.alpha >= 0.8 || p.alpha <= 0.1) p.pulsate *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(224, 191, 184, ${p.alpha})`; 
+                ctx.fill();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        initCanvas(); animateParticles();
+
+        // --- 2. 3D ENVELOPE LOGIC ---
+        const envelope = document.getElementById('envelope');
+        const scene = document.getElementById('scene');
+        const hintText = document.getElementById('hint-text');
+        
+        let step = 0;
+        let isAnimating = false;
+
+        // Interaction bound to the whole envelope container
+        envelope.addEventListener('click', advanceFold);
+        envelope.addEventListener('touchstart', (e) => { e.preventDefault(); advanceFold(); }, {passive: false});
+
+        function advanceFold() {
+            if(isAnimating || step >= 4) return;
+            isAnimating = true;
+
+            if (navigator.vibrate) navigator.vibrate(15); // Haptic tap
+
+            if (step === 0) {
+                // Break seal, open top
+                createSparks(envelope.getBoundingClientRect());
+                envelope.classList.add('open-top');
+                hintText.innerText = "Keep unfolding...";
+                
+                setTimeout(() => { isAnimating = false; step++; }, 800);
+            } 
+            else if (step === 1) {
+                // Open sides
+                envelope.classList.add('open-sides');
+                
+                setTimeout(() => { isAnimating = false; step++; }, 800);
+            }
+            else if (step === 2) {
+                // Open bottom
+                envelope.classList.add('open-bottom');
+                hintText.innerText = "Pull the letter out...";
+                
+                setTimeout(() => { isAnimating = false; step++; }, 800);
+            }
+            else if (step === 3) {
+                // Pull letter out & trigger finale
+                scene.classList.add('extract-letter');
+                document.getElementById('instruction-text').style.opacity = '0';
+                
+                if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+
+                setTimeout(() => {
+                    // Speed up particles
+                    particles.forEach(p => p.v *= 6);
+                    
+                    // Show actual final message
+                    document.getElementById('final-screen').classList.add('active');
+                    
+                    isAnimating = false;
+                    step++;
+                }, 1000);
+            }
+        }
+
+        // --- MAGIC SPARKS FOR SEAL BREAKING ---
+        function createSparks(rect) {
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height * 0.2; // roughly where the seal is
+
+            for (let i = 0; i < 20; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'spark';
+                document.body.appendChild(spark);
+
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = Math.random() * 80 + 30; 
+                const endX = centerX + Math.cos(angle) * velocity;
+                const endY = centerY + Math.sin(angle) * velocity;
+
+                spark.style.left = centerX + 'px';
+                spark.style.top = centerY + 'px';
+                spark.style.opacity = '1';
+                spark.style.transition = 'all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1)';
+
+                setTimeout(() => {
+                    spark.style.transform = `translate(${endX - centerX}px, ${endY - centerY}px) scale(0)`;
+                    spark.style.opacity = '0';
+                }, 10);
+
+                setTimeout(() => spark.remove(), 600);
+            }
+        }
+    </script>
+</body>
+</html>
