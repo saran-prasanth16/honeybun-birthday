@@ -347,6 +347,244 @@
     </script>
 </body>
 </html>
+        .aligned #moon {
+            box-shadow: none; /* Becomes a perfect black silhouette */
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), top 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), left 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* --- FINAL REVEAL CARD --- */
+        #final-screen {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; z-index: 50;
+            transition: opacity 2s ease 1s; /* Waits 1s for eclipse flash before showing */
+        }
+        #final-screen.active { opacity: 1; pointer-events: all; }
+
+        .reveal-card {
+            background: linear-gradient(180deg, rgba(20, 10, 12, 0.85) 0%, rgba(10, 5, 6, 0.95) 100%);
+            border: 1px solid rgba(183, 110, 121, 0.3); border-radius: 24px;
+            padding: clamp(30px, 8vw, 50px) clamp(20px, 6vw, 30px);
+            text-align: center; width: 88%; max-width: 400px;
+            max-height: 85dvh; overflow-y: auto; scrollbar-width: none;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 40px rgba(183, 110, 121, 0.15);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            transform: scale(0.9) translateY(20px); transition: transform 2s cubic-bezier(0.25, 0.8, 0.25, 1) 1s;
+        }
+        .reveal-card::-webkit-scrollbar { display: none; }
+        #final-screen.active .reveal-card { transform: scale(1) translateY(0); }
+
+        .reveal-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(2rem, 8vw, 2.8rem); color: var(--rosegold-light); font-style: italic; margin-bottom: 15px; }
+        .reveal-body { font-size: clamp(0.95rem, 4vw, 1.1rem); color: #d8c8cb; line-height: 1.8; font-weight: 300; margin-bottom: 30px; white-space: pre-line; }
+        .reveal-footer { font-size: 0.75rem; letter-spacing: 4px; color: var(--rosegold-main); text-transform: uppercase; font-weight: 600; }
+
+        /* KEYFRAMES */
+        @keyframes pulseHint { 0% { opacity: 0.4; } 100% { opacity: 1; } }
+        @keyframes sunPulse { 0% { box-shadow: 0 0 80px #ff2a5f, 0 0 150px var(--rosegold-light); } 100% { box-shadow: 0 0 100px #ff2a5f, 0 0 200px #fff; } }
+        @keyframes diamondRing { 
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; } 
+            50% { transform: translate(-30%, -70%) scale(1.5); opacity: 1; } /* Off-center flare */
+            100% { transform: translate(-30%, -70%) scale(2); opacity: 0; } 
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="instruction-overlay" id="instruction-text">
+        We were two worlds apart.
+        <div class="sub-instruction" id="hint-text">Bring us together</div>
+    </div>
+
+    <div id="sun"></div>
+    <div id="eclipse-flash"></div>
+    <div id="moon"></div>
+
+    <div id="final-screen">
+        <div class="reveal-card">
+            <h1 class="reveal-title">The Alignment</h1>
+            <div style="width: 40px; height: 1px; background: var(--rosegold-main); margin: 0 auto 20px auto;"></div>
+            <p class="reveal-body">
+                Before you, my world was just spinning quietly in the dark. 
+                
+                But the moment our paths crossed, you eclipsed everything else in my mind. You are my most beautiful phenomenon.
+                
+                Good morning, Ammu.
+            </p>
+            <div class="reveal-footer">Day 7 Unlocked ✨</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. AMBIENT PARTICLES ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function initCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            particles = [];
+            for (let i = 0; i < 50; i++) {
+                particles.push({
+                    x: Math.random() * width, y: Math.random() * height,
+                    r: Math.random() * 1.5, alpha: Math.random(),
+                    v: Math.random() * 0.3 + 0.1, pulsate: Math.random() * 0.02 + 0.01
+                });
+            }
+        }
+        window.addEventListener('resize', initCanvas);
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.y -= p.v;
+                if (p.y < -10) { p.y = height + 10; p.x = Math.random() * width; }
+                p.alpha += p.pulsate;
+                if (p.alpha >= 0.8 || p.alpha <= 0.1) p.pulsate *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(224, 191, 184, ${p.alpha})`; 
+                ctx.fill();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        initCanvas(); animateParticles();
+
+
+        // --- 2. ECLIPSE DRAG LOGIC ---
+        const moon = document.getElementById('moon');
+        const sun = document.getElementById('sun');
+        const instructionText = document.getElementById('instruction-text');
+        
+        let isDragging = false;
+        let isAligned = false;
+        let startX = 0, startY = 0;
+        let moonStartLeft = 0, moonStartTop = 0;
+
+        function getCoords(e) {
+            return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+        }
+
+        moon.addEventListener('mousedown', handleStart);
+        moon.addEventListener('touchstart', handleStart, {passive: false});
+
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', handleMove, {passive: false});
+        
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchend', handleEnd);
+
+        function handleStart(e) {
+            if(isAligned) return;
+            isDragging = true;
+            
+            const pos = getCoords(e);
+            startX = pos.x;
+            startY = pos.y;
+            
+            const rect = moon.getBoundingClientRect();
+            // Store original coordinates based on absolute viewport position
+            moonStartLeft = rect.left + rect.width / 2;
+            moonStartTop = rect.top + rect.height / 2;
+            
+            moon.style.transition = 'none'; // Disable transition for real-time tracking
+            if(navigator.vibrate) navigator.vibrate(10);
+        }
+
+        function handleMove(e) {
+            if(!isDragging || isAligned) return;
+            e.preventDefault(); 
+            
+            const pos = getCoords(e);
+            let dx = pos.x - startX;
+            let dy = pos.y - startY;
+            
+            // Calculate new visual center of the moon
+            let newX = moonStartLeft + dx;
+            let newY = moonStartTop + dy;
+            
+            // Update Moon position directly via fixed coordinates
+            moon.style.left = `${newX}px`;
+            moon.style.top = `${newY}px`;
+            moon.style.bottom = 'auto'; // Disable bottom rule to freely move with top/left
+            moon.style.transform = `translate(-50%, -50%)`; // Keep it centered on the cursor
+
+            // --- CORONA MATH ---
+            // Calculate distance between Sun center and Moon center
+            const sunRect = sun.getBoundingClientRect();
+            const sunCX = sunRect.left + sunRect.width / 2;
+            const sunCY = sunRect.top + sunRect.height / 2;
+            
+            const distance = Math.hypot(newX - sunCX, newY - sunCY);
+            const maxDistance = window.innerHeight * 0.4; // Distance when effect starts
+            
+            if (distance < maxDistance) {
+                // Closer it gets (0 to 1 intensity)
+                let intensity = 1 - (distance / maxDistance);
+                
+                // Dynamically increase the glow of the sun
+                let innerGlow = 40 + (intensity * 40); 
+                let outerGlow = 80 + (intensity * 80);
+                sun.style.boxShadow = `0 0 ${innerGlow}px rgba(183, 110, 121, 0.8), 0 0 ${outerGlow}px rgba(224, 191, 184, ${0.3 + intensity * 0.5})`;
+                
+                // Fade out the instruction text organically
+                instructionText.style.opacity = `${1 - (intensity * 1.5)}`;
+                
+                // Snap condition
+                if (distance < 25) {
+                    triggerAlignment(sunCX, sunCY);
+                }
+            } else {
+                sun.style.boxShadow = `0 0 40px rgba(183, 110, 121, 0.5), 0 0 80px rgba(183, 110, 121, 0.3)`;
+                instructionText.style.opacity = '1';
+            }
+        }
+
+        function handleEnd() {
+            if(!isDragging || isAligned) return;
+            isDragging = false;
+            
+            // If released and not aligned, drop back to the bottom
+            moon.style.transition = 'top 0.8s cubic-bezier(0.4, 0, 0.2, 1), left 0.8s cubic-bezier(0.4, 0, 0.2, 1), bottom 0.8s ease';
+            moon.style.top = 'auto';
+            moon.style.bottom = '15%';
+            moon.style.left = '50%';
+            moon.style.transform = 'translate(-50%, 0)';
+            
+            sun.style.boxShadow = `0 0 40px rgba(183, 110, 121, 0.5), 0 0 80px rgba(183, 110, 121, 0.3)`;
+            instructionText.style.opacity = '1';
+        }
+
+        // --- 3. ALIGNMENT & FINALE LOGIC ---
+        function triggerAlignment(sunX, sunY) {
+            isAligned = true;
+            isDragging = false;
+            
+            if(navigator.vibrate) navigator.vibrate([100, 50, 200]); 
+            
+            // 1. Magnetically snap the moon exactly over the sun
+            moon.style.transition = 'top 0.2s cubic-bezier(0.25, 0.8, 0.25, 1), left 0.2s cubic-bezier(0.25, 0.8, 0.25, 1)';
+            moon.style.top = `${sunY}px`;
+            moon.style.left = `${sunX}px`;
+            
+            // 2. Trigger CSS animation classes for the flash and pulse
+            document.body.classList.add('aligned');
+            instructionText.style.opacity = '0';
+
+            // 3. Accelerate background dust for dramatic effect
+            particles.forEach(p => p.v *= 8);
+
+            // 4. Reveal the final message
+            setTimeout(() => {
+                document.getElementById('final-screen').classList.add('active');
+            }, 500);
+        }
+    </script>
+</body>
+</html>
         .marker {
             position: absolute; font-family: 'Montserrat', sans-serif;
             font-size: 1rem; font-weight: 500; color: var(--rosegold-dark);
