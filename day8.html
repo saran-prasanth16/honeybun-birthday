@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Day 8 ✨</title>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
+
+        :root {
+            --bg-deep: #050203;
+            --bg-light: #16070a;
+            --rosegold-light: #e0bfb8;
+            --rosegold-main: #b76e79;
+            --rosegold-dark: #63333d;
+            --text-light: #f3e5e5;
+            
+            /* Liquid Colors */
+            --liq-1: #804a53; /* Amber/Dark Rose */
+            --liq-2: #b76e79; /* Pure Rose Gold */
+            --liq-3: #ff2a5f; /* Magenta/Magic */
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none; -webkit-user-drag: none;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            background-image: radial-gradient(circle at 50% 50%, var(--bg-light) 0%, var(--bg-deep) 100%);
+            color: var(--text-light);
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+            height: 100dvh; width: 100vw;
+            position: fixed; top: 0; left: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        /* --- AMBIENT DUST --- */
+        #particle-canvas {
+            position: absolute; top: 0; left: 0;
+            width: 100vw; height: 100dvh;
+            z-index: 1; pointer-events: none;
+        }
+
+        /* --- UI HEADERS --- */
+        .instruction-overlay {
+            position: absolute; top: 12%; width: 100%;
+            text-align: center; z-index: 5;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(1.8rem, 6vw, 2.5rem); 
+            color: var(--rosegold-light); font-style: italic;
+            text-shadow: 0 0 15px rgba(183, 110, 121, 0.6);
+            pointer-events: none; transition: opacity 1s ease;
+            padding: 0 20px; line-height: 1.3;
+        }
+
+        .sub-instruction {
+            font-family: 'Montserrat', sans-serif; 
+            font-size: clamp(0.65rem, 2.5vw, 0.8rem);
+            letter-spacing: 4px; text-transform: uppercase; color: var(--rosegold-main);
+            margin-top: 15px; font-weight: 400; font-style: normal;
+            animation: pulseHint 2s infinite alternate;
+        }
+
+        /* --- THE QUANTUM RESONANCE MECHANISM --- */
+        #resonance-container {
+            position: relative;
+            width: 300px; height: 300px;
+            z-index: 20; display: flex; justify-content: center; align-items: center;
+            margin-top: 5vh; transition: all 1s ease;
+        }
+
+        /* The Central Core / Singularity */
+        #resonance-core {
+            position: absolute; width: clamp(60px, 15vw, 80px); height: clamp(60px, 15vw, 80px);
+            border-radius: 50%;
+            background: rgba(224, 191, 184, 0.1);
+            border: 1px solid rgba(183, 110, 121, 0.3);
+            box-shadow: inset 0 0 15px rgba(183, 110, 121, 0.2), 0 0 30px rgba(183, 110, 121, 0.2);
+            transition: all 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* Echo Rings that expand outward when pulsating */
+        .echo-ring {
+            position: absolute; width: 100%; height: 100%;
+            border-radius: 50%; border: 1px solid rgba(183, 110, 121, 0.4);
+            opacity: 0; pointer-events: none; z-index: 1;
+        }
+
+        /* The fragments to collect */
+        .fragment-container {
+            position: absolute; width: 100%; height: 100%;
+            z-index: 30; pointer-events: none; /* Let clicks pass through */
+        }
+        
+        .fragment {
+            position: absolute;
+            width: clamp(25px, 6vw, 35px); height: clamp(25px, 6vw, 35px);
+            background: radial-gradient(circle, var(--rosegold-light) 0%, rgba(183,110,121,0.5) 70%, transparent 100%);
+            border: 1px solid rgba(255,255,255,0.4); border-radius: 50%;
+            box-shadow: 0 0 15px rgba(183,110,121,0.7), 0 0 30px rgba(183,110,121,0.4);
+            cursor: grab; touch-action: none; pointer-events: all;
+            transition: transform 0.1s ease, opacity 0.5s ease;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .fragment:active { cursor: grabbing; }
+
+        /* The label on the fragment */
+        .fragment-label {
+            font-family: 'Cormorant Garamond', serif; font-size: clamp(0.5rem, 2vw, 0.7rem);
+            font-weight: 600; font-style: italic; color: var(--bg-deep);
+            opacity: 0.8;
+        }
+
+        /* Position the 4 fragments dynamically around the edge */
+        #frag-1 { top: 10%; left: 10%; animation: floatFragment 6s ease-in-out infinite alternate; }
+        #frag-2 { top: 10%; right: 10%; animation: floatFragment 6s ease-in-out infinite alternate -1.5s; }
+        #frag-3 { bottom: 10%; left: 10%; animation: floatFragment 6s ease-in-out infinite alternate -3s; }
+        #frag-4 { bottom: 10%; right: 10%; animation: floatFragment 6s ease-in-out infinite alternate -4.5s; }
+
+        /* Supernova Flash Overlay */
+        #supernova-overlay {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh;
+            background-color: var(--rosegold-light); opacity: 0; pointer-events: none; z-index: 60;
+        }
+
+        /* --- FINAL REVEAL CARD --- */
+        #final-screen {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; z-index: 70;
+            transition: opacity 2s ease 0.5s; 
+        }
+        #final-screen.active { opacity: 1; pointer-events: all; }
+
+        .reveal-card {
+            background: linear-gradient(180deg, rgba(20, 10, 12, 0.85) 0%, rgba(10, 5, 6, 0.95) 100%);
+            border: 1px solid rgba(183, 110, 121, 0.3); border-radius: 24px;
+            padding: clamp(30px, 8vw, 50px) clamp(20px, 6vw, 30px);
+            text-align: center; width: 88%; max-width: 420px;
+            max-height: 85dvh; overflow-y: auto; scrollbar-width: none;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 40px rgba(183, 110, 121, 0.15);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            transform: scale(0.9) translateY(20px); transition: transform 2s cubic-bezier(0.25, 0.8, 0.25, 1) 0.5s;
+        }
+        .reveal-card::-webkit-scrollbar { display: none; }
+        #final-screen.active .reveal-card { transform: scale(1) translateY(0); }
+
+        .reveal-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.2rem, 8vw, 3rem); color: var(--rosegold-light); font-style: italic; margin-bottom: 15px; }
+        .reveal-body { font-size: clamp(0.95rem, 4vw, 1.1rem); color: #d8c8cb; line-height: 1.8; font-weight: 300; margin-bottom: 30px; white-space: pre-line; }
+        .reveal-footer { font-size: 0.75rem; letter-spacing: 4px; color: var(--rosegold-main); text-transform: uppercase; font-weight: 600; }
+
+        /* KEYFRAMES */
+        @keyframes pulseHint { 0% { opacity: 0.4; } 100% { opacity: 1; } }
+        @keyframes floatFragment { 0% { transform: translate(0, 0); } 100% { transform: translate(15px, 20px); } }
+        @keyframes rippleEffect { 
+            0% { transform: scale(1); opacity: 0.8; border-width: 2px; } 
+            100% { transform: scale(3.5); opacity: 0; border-width: 0px; } 
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="particle-canvas"></canvas>
+    <div id="supernova-overlay"></div>
+
+    <div class="instruction-overlay" id="instruction-text">
+        The resonance is fading.
+        <div class="sub-instruction" id="hint-text">Gather the echoes</div>
+    </div>
+
+    <div id="resonance-container">
+        <div class="echo-ring" id="ring-1"></div>
+        <div class="echo-ring" id="ring-2"></div>
+        <div class="echo-ring" id="ring-3"></div>
+        
+        <div class="fragment-container">
+            <div class="fragment" id="frag-1">✨</div>
+            <div class="fragment" id="frag-2">✨</div>
+            <div class="fragment" id="frag-3">✨</div>
+            <div class="fragment" id="frag-4">✨</div>
+        </div>
+
+        <div id="resonance-core"></div>
+    </div>
+
+    <div id="final-screen">
+        <div class="reveal-card">
+            <h1 class="reveal-title">Deep Resonance</h1>
+            <div style="width: 40px; height: 1px; background: var(--rosegold-main); margin: 0 auto 20px auto;"></div>
+            <p class="reveal-body">
+                It’s not just the words we exchange…
+                It’s the feeling behind them.
+                The way a simple conversation with you
+                can change my whole mood.
+
+                The way your presence
+                stays even after we stop talking.
+
+                That’s not something ordinary…
+                And I think we both know it.
+                
+                I love you always, Pani Bommai.
+            </p>
+            <div class="reveal-footer">Day 8 Unlocked ✨</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. AMBIENT PARTICLES ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function initCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            particles = [];
+            for (let i = 0; i < 40; i++) {
+                particles.push({
+                    x: Math.random() * width, y: Math.random() * height,
+                    r: Math.random() * 1.5, alpha: Math.random(),
+                    v: Math.random() * 0.3 + 0.1, pulsate: Math.random() * 0.02 + 0.01
+                });
+            }
+        }
+        window.addEventListener('resize', initCanvas);
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.y -= p.v;
+                if (p.y < -10) { p.y = height + 10; p.x = Math.random() * width; }
+                p.alpha += p.pulsate;
+                if (p.alpha >= 0.8 || p.alpha <= 0.1) p.pulsate *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(224, 191, 184, ${p.alpha})`; 
+                ctx.fill();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        initCanvas(); animateParticles();
+
+        // --- 2. QUANTUM RESONANCE (DRAG & DROP LOGIC) ---
+        const frags = [document.getElementById('frag-1'), document.getElementById('frag-2'), document.getElementById('frag-3'), document.getElementById('frag-4')];
+        const core = document.getElementById('resonance-core');
+        const rings = [document.getElementById('ring-1'), document.getElementById('ring-2'), document.getElementById('ring-3')];
+        
+        let ingredientsAdded = 0;
+        let activeFrag = null;
+        let startX = 0, startY = 0;
+        let isFinished = false;
+        let echoInterval;
+
+        function getCoords(e) {
+            return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+        }
+
+        // Attach physics to all 4 fragments
+        frags.forEach(frag => {
+            frag.addEventListener('mousedown', handleStart);
+            frag.addEventListener('touchstart', handleStart, {passive: false});
+        });
+
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', handleMove, {passive: false});
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchend', handleEnd);
+
+        function handleStart(e) {
+            if (isFinished || e.target.classList.contains('consumed')) return;
+            
+            activeFrag = e.target;
+            const pos = getCoords(e);
+            startX = pos.x;
+            startY = pos.y;
+            
+            // Bring to absolute top z-index during the drag
+            activeFrag.style.zIndex = '1000';
+            activeFrag.style.transition = 'none'; // Follow finger exactly
+            activeFrag.style.animation = 'none'; // Disable floating animation while dragging
+            
+            if(navigator.vibrate) navigator.vibrate(10);
+        }
+
+        function handleMove(e) {
+            if (!activeFrag) return;
+            e.preventDefault(); 
+            
+            const pos = getCoords(e);
+            let dx = pos.x - startX;
+            let dy = pos.y - startY;
+            
+            // Move the fragment freely in 2D space
+            activeFrag.style.transform = `translate(${dx}px, ${dy}px) scale(1.1)`;
+        }
+
+        function handleEnd() {
+            if (!activeFrag) return;
+            
+            // Check collision with the central core
+            const fragRect = activeFrag.getBoundingClientRect();
+            const coreRect = core.getBoundingClientRect();
+            
+            // Calculate center of the drop
+            const fragCenterX = fragRect.left + fragRect.width / 2;
+            const fragCenterY = fragRect.top + fragRect.height / 2;
+            const coreCenterX = coreRect.left + coreRect.width / 2;
+            const coreCenterY = coreRect.top + coreRect.height / 2;
+
+            const distance = Math.hypot(fragCenterX - coreCenterX, fragCenterY - coreCenterY);
+
+            // Snapping tolerance (expanded hit zone)
+            if (distance < 70) {
+                consumeIngredient(activeFrag);
+            } else {
+                // Not Aligned - Snap back to original position
+                activeFrag.style.transition = 'all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                activeFrag.style.transform = `translate(0px, 0px) scale(1)`;
+                // Re-enable floating animation after the return
+                setTimeout(() => {
+                    if(!activeFrag || activeFrag.classList.contains('consumed')) return;
+                    activeFrag.style.animation = 'floatFragment 6s ease-in-out infinite alternate'; 
+                    activeFrag.style.zIndex = ''; 
+                }, 400);
+            }
+            activeFrag = null;
+        }
+
+        function consumeIngredient(frag) {
+            ingredientsAdded++;
+            frag.classList.add('consumed');
+            frag.style.pointerEvents = 'none'; // Prevent dragging again
+
+            // Animate it shrinking into the core
+            frag.style.transition = 'all 0.3s ease-in, opacity 0.2s ease 0.1s';
+            frag.style.transform = `scale(0)`;
+            frag.style.opacity = '0';
+            
+            if(navigator.vibrate) navigator.vibrate([20, 20]); // Plop!
+
+            setTimeout(() => {
+                updateCoreVisuals();
+                triggerVisualEcho(10); // Burst of visual energy
+            }, 300);
+        }
+
+        // --- 3. RESONANCE VISUALS ---
+        function updateCoreVisuals() {
+            let targetSize = "clamp(60px, 15vw, 80px)";
+            let targetGradient = "";
+            let targetGlow = "";
+
+            if (ingredientsAdded === 1) {
+                targetSize = "clamp(70px, 17vw, 90px)";
+                targetGradient = `radial-gradient(circle, var(--rosegold-light) 0%, rgba(128,74,83,0.5) 100%)`;
+                targetGlow = `0 0 30px rgba(183,110,121,0.3), inset 0 0 15px rgba(183,110,121,0.2)`;
+            } 
+            else if (ingredientsAdded === 2) {
+                targetSize = "clamp(85px, 20vw, 110px)";
+                targetGradient = `radial-gradient(circle, #fff 0%, var(--rosegold-main) 70%, var(--rosegold-dark) 100%)`;
+                targetGlow = `0 0 50px rgba(183,110,121,0.6), 0 0 90px rgba(183,110,121,0.3), inset 0 0 30px rgba(183,110,121,0.5)`;
+            } 
+            else if (ingredientsAdded === 3) {
+                targetSize = "clamp(100px, 25vw, 130px)";
+                targetGradient = `radial-gradient(circle, #fff 0%, #fff 30%, var(--liq-3) 80%, var(--rosegold-dark) 100%)`;
+                targetGlow = `0 0 70px #ff2a5f, 0 0 130px #ff2a5f, inset 0 0 50px rgba(255,42,95,0.8)`;
+                triggerVisualEcho(15);
+            }
+            else if (ingredientsAdded === 4) {
+                triggerFinale();
+            }
+
+            core.style.width = targetSize;
+            core.style.height = targetSize;
+            core.style.background = targetGradient;
+            core.style.boxShadow = targetGlow;
+        }
+
+        function triggerVisualEcho(count) {
+            // Android Haptic Echo Lub-Dub
+            if(navigator.vibrate) navigator.vibrate([40, 60, 40]); 
+
+            // Trigger visual expanding rings
+            rings[0].style.animation = 'rippleEffect 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) forwards';
+            setTimeout(() => rings[1].style.animation = 'rippleEffect 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) forwards', 150);
+            setTimeout(() => rings[2].style.animation = 'rippleEffect 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) forwards', 300);
+            
+            // Reset the animations
+            setTimeout(() => {
+                rings.forEach(r => r.style.animation = 'none');
+            }, 1200);
+        }
+
+        // --- 4. FINALE SEQUENCE ---
+        function triggerFinale() {
+            isFinished = true;
+            
+            // Constantly pulse visual echo for boiling effect
+            echoInterval = setInterval(() => triggerVisualEcho(10), 600);
+            
+            document.getElementById('instruction-text').style.opacity = '0';
+
+            setTimeout(() => {
+                if(navigator.vibrate) navigator.vibrate([100, 50, 400]); // Supernova flash Rumble
+                clearInterval(echoInterval);
+                
+                // Supernova flash
+                const overlay = document.getElementById('supernova-overlay');
+                overlay.style.transition = 'opacity 0.2s ease-in';
+                overlay.style.opacity = '1';
+
+                setTimeout(() => {
+                    // Hide resonance container completely
+                    document.getElementById('resonance-container').style.display = 'none';
+                    
+                    document.getElementById('final-screen').classList.add('active');
+                    particles.forEach(p => p.v *= 6); // Speed up ambient dust
+                    
+                    // Fade out flash
+                    overlay.style.transition = 'opacity 1.5s ease-out';
+                    overlay.style.opacity = '0';
+                }, 400);
+
+            }, 1800); 
+        }
+    </script>
+</body>
+</html>
