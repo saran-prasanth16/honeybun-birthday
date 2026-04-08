@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Day 9 ✨</title>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
+
+        :root {
+            --bg-deep: #050203;
+            --bg-light: #16070a;
+            --rosegold-light: #e0bfb8;
+            --rosegold-main: #b76e79;
+            --rosegold-dark: #63333d;
+            --gold-glow: #ffd700;
+            --text-light: #f3e5e5;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none; -webkit-user-drag: none;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            background-image: radial-gradient(circle at 50% 50%, var(--bg-light) 0%, var(--bg-deep) 100%);
+            color: var(--text-light);
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+            height: 100dvh; width: 100vw;
+            position: fixed; top: 0; left: 0;
+        }
+
+        /* --- AMBIENT DUST --- */
+        #particle-canvas {
+            position: absolute; top: 0; left: 0;
+            width: 100vw; height: 100dvh;
+            z-index: 1; pointer-events: none;
+        }
+
+        /* --- UI HEADERS --- */
+        .instruction-overlay {
+            position: absolute; top: 8%; width: 100%;
+            text-align: center; z-index: 5;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(1.4rem, 5vw, 2.2rem); 
+            color: var(--rosegold-light); font-style: italic;
+            text-shadow: 0 0 15px rgba(183, 110, 121, 0.6);
+            pointer-events: none; transition: opacity 1s ease;
+            padding: 0 20px; line-height: 1.4;
+        }
+
+        .sub-instruction {
+            font-family: 'Montserrat', sans-serif; 
+            font-size: clamp(0.65rem, 2.5vw, 0.8rem);
+            letter-spacing: 4px; text-transform: uppercase; color: var(--rosegold-main);
+            margin-top: 15px; font-weight: 400; font-style: normal;
+            animation: pulseHint 2s infinite alternate;
+        }
+
+        /* --- TARGET ZONE (Where the heart goes) --- */
+        #target-zone {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -40%);
+            width: clamp(160px, 45vw, 240px);
+            aspect-ratio: 32 / 29.6; /* Exact ratio of the SVG heart */
+            z-index: 10;
+        }
+
+        .outline-svg {
+            width: 100%; height: 100%;
+            fill: none; stroke: rgba(183, 110, 121, 0.3);
+            stroke-width: 0.5; stroke-dasharray: 2 2;
+            pointer-events: none;
+        }
+
+        /* The Kintsugi Golden Lines (Hidden initially) */
+        .kintsugi-lines {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; opacity: 0; z-index: 20;
+            transition: opacity 1.5s ease;
+        }
+        .kintsugi-lines path {
+            fill: none; stroke: var(--gold-glow); stroke-width: 1.5;
+            stroke-linecap: round; stroke-linejoin: round;
+            filter: drop-shadow(0 0 4px var(--gold-glow)) drop-shadow(0 0 10px #ffaa00);
+        }
+
+        /* --- THE PUZZLE PIECES --- */
+        .piece {
+            position: absolute;
+            width: clamp(160px, 45vw, 240px);
+            aspect-ratio: 32 / 29.6;
+            cursor: grab; touch-action: none;
+            z-index: 30;
+            transition: transform 0.3s ease, opacity 0.5s ease;
+        }
+        .piece:active { cursor: grabbing; }
+        
+        .piece.snapped {
+            cursor: default; pointer-events: none;
+            z-index: 15; /* Drop below active pieces */
+            filter: brightness(1.2);
+        }
+
+        /* SVG Heart styling inside the pieces */
+        .heart-svg {
+            width: 100%; height: 100%;
+            fill: rgba(224, 191, 184, 0.15); /* Frosted glass look */
+            stroke: rgba(224, 191, 184, 0.5); stroke-width: 0.3;
+            filter: drop-shadow(0 15px 15px rgba(0,0,0,0.6));
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+        }
+
+        /* Clip paths to slice the 4 pieces */
+        .p1 { clip-path: polygon(0 0, 50% 0, 45% 40%, 0 50%); top: 22%; left: 5%; transform: rotate(-20deg); }
+        .p2 { clip-path: polygon(50% 0, 100% 0, 100% 45%, 45% 40%); top: 25%; right: 5%; transform: rotate(15deg); }
+        .p3 { clip-path: polygon(0 50%, 45% 40%, 55% 100%, 0 100%); bottom: 15%; left: 10%; transform: rotate(-15deg); }
+        .p4 { clip-path: polygon(45% 40%, 100% 45%, 100% 100%, 55% 100%); bottom: 18%; right: 5%; transform: rotate(25deg); }
+
+        /* --- FINALE ANIMATION STATES --- */
+        .mended .kintsugi-lines { opacity: 1; animation: goldPulse 2s infinite alternate; }
+        .mended .heart-svg { fill: rgba(224, 191, 184, 0.3); transition: fill 1.5s ease; }
+        .mended .outline-svg { opacity: 0; }
+
+        /* Supernova Flash Overlay */
+        #supernova-overlay {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh;
+            background-color: var(--gold-glow); opacity: 0; pointer-events: none; z-index: 60;
+        }
+
+        /* --- FINAL REVEAL CARD --- */
+        #final-screen {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; z-index: 70;
+            transition: opacity 2s ease 0.5s; 
+        }
+        #final-screen.active { opacity: 1; pointer-events: all; }
+
+        .reveal-card {
+            background: linear-gradient(180deg, rgba(20, 10, 12, 0.85) 0%, rgba(10, 5, 6, 0.95) 100%);
+            border: 1px solid rgba(183, 110, 121, 0.3); border-radius: 24px;
+            padding: clamp(30px, 8vw, 50px) clamp(20px, 6vw, 30px);
+            text-align: center; width: 88%; max-width: 420px;
+            max-height: 85dvh; overflow-y: auto; scrollbar-width: none;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 40px rgba(255, 215, 0, 0.15);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            transform: scale(0.9) translateY(20px); transition: transform 2s cubic-bezier(0.25, 0.8, 0.25, 1) 0.5s;
+        }
+        .reveal-card::-webkit-scrollbar { display: none; }
+        #final-screen.active .reveal-card { transform: scale(1) translateY(0); }
+
+        .reveal-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.2rem, 8vw, 3rem); color: var(--gold-glow); font-style: italic; margin-bottom: 15px; }
+        .reveal-body { font-size: clamp(0.95rem, 4vw, 1.1rem); color: #d8c8cb; line-height: 1.8; font-weight: 300; margin-bottom: 30px; white-space: pre-line; }
+        .reveal-footer { font-size: 0.75rem; letter-spacing: 4px; color: var(--rosegold-main); text-transform: uppercase; font-weight: 600; }
+
+        /* KEYFRAMES */
+        @keyframes pulseHint { 0% { opacity: 0.4; } 100% { opacity: 1; } }
+        @keyframes goldPulse { 0% { filter: drop-shadow(0 0 4px var(--gold-glow)) drop-shadow(0 0 10px #ffaa00); } 100% { filter: drop-shadow(0 0 10px var(--gold-glow)) drop-shadow(0 0 25px #ffaa00); } }
+    </style>
+</head>
+<body>
+
+    <canvas id="particle-canvas"></canvas>
+    <div id="supernova-overlay"></div>
+
+    <div class="instruction-overlay" id="instruction-text">
+        Love is about building something beautiful together.
+        <div class="sub-instruction" id="hint-text">Mend the pieces</div>
+    </div>
+
+    <div id="target-zone">
+        <svg viewBox="0 0 32 29.6" class="outline-svg">
+            <path d="M23.6,0c-3.4,0-6.3,2.7-7.6,5.6C14.7,2.7,11.8,0,8.4,0C3.8,0,0,3.8,0,8.4c0,9.4,9.5,11.9,16,21.2c6.1-9.3,16-12.1,16-21.2C32,3.8,28.2,0,23.6,0z"/>
+        </svg>
+        
+        <svg class="kintsugi-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path d="M 50 0 L 45 40 L 0 50 M 45 40 L 100 45 M 45 40 L 55 100" />
+        </svg>
+    </div>
+
+    <div class="piece p1">
+        <svg viewBox="0 0 32 29.6" class="heart-svg"><path d="M23.6,0c-3.4,0-6.3,2.7-7.6,5.6C14.7,2.7,11.8,0,8.4,0C3.8,0,0,3.8,0,8.4c0,9.4,9.5,11.9,16,21.2c6.1-9.3,16-12.1,16-21.2C32,3.8,28.2,0,23.6,0z"/></svg>
+    </div>
+    <div class="piece p2">
+        <svg viewBox="0 0 32 29.6" class="heart-svg"><path d="M23.6,0c-3.4,0-6.3,2.7-7.6,5.6C14.7,2.7,11.8,0,8.4,0C3.8,0,0,3.8,0,8.4c0,9.4,9.5,11.9,16,21.2c6.1-9.3,16-12.1,16-21.2C32,3.8,28.2,0,23.6,0z"/></svg>
+    </div>
+    <div class="piece p3">
+        <svg viewBox="0 0 32 29.6" class="heart-svg"><path d="M23.6,0c-3.4,0-6.3,2.7-7.6,5.6C14.7,2.7,11.8,0,8.4,0C3.8,0,0,3.8,0,8.4c0,9.4,9.5,11.9,16,21.2c6.1-9.3,16-12.1,16-21.2C32,3.8,28.2,0,23.6,0z"/></svg>
+    </div>
+    <div class="piece p4">
+        <svg viewBox="0 0 32 29.6" class="heart-svg"><path d="M23.6,0c-3.4,0-6.3,2.7-7.6,5.6C14.7,2.7,11.8,0,8.4,0C3.8,0,0,3.8,0,8.4c0,9.4,9.5,11.9,16,21.2c6.1-9.3,16-12.1,16-21.2C32,3.8,28.2,0,23.6,0z"/></svg>
+    </div>
+
+    <div id="final-screen">
+        <div class="reveal-card">
+            <h1 class="reveal-title">The Masterpiece</h1>
+            <div style="width: 40px; height: 1px; background: var(--gold-glow); margin: 0 auto 20px auto; box-shadow: 0 0 10px var(--gold-glow);"></div>
+            <p class="reveal-body">
+                Every flaw, every crack, every broken piece... when I put them all together, they make the most beautiful thing I've ever known. 
+                
+                I love you always , Ammu.
+            </p>
+            <div class="reveal-footer">Day 9 Unlocked ✨</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. AMBIENT PARTICLES ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function initCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            particles = [];
+            for (let i = 0; i < 40; i++) {
+                particles.push({
+                    x: Math.random() * width, y: Math.random() * height,
+                    r: Math.random() * 1.5, alpha: Math.random(),
+                    v: Math.random() * 0.3 + 0.1, pulsate: Math.random() * 0.02 + 0.01
+                });
+            }
+        }
+        window.addEventListener('resize', initCanvas);
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.y -= p.v;
+                if (p.y < -10) { p.y = height + 10; p.x = Math.random() * width; }
+                p.alpha += p.pulsate;
+                if (p.alpha >= 0.8 || p.alpha <= 0.1) p.pulsate *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                // Make particles slightly golden for this day
+                ctx.fillStyle = `rgba(255, 215, 0, ${p.alpha})`; 
+                ctx.fill();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        initCanvas(); animateParticles();
+
+        // --- 2. KINTSUGI PUZZLE LOGIC ---
+        const pieces = document.querySelectorAll('.piece');
+        const target = document.getElementById('target-zone');
+        
+        let activePiece = null;
+        let offsetX = 0, offsetY = 0;
+        let piecesSnapped = 0;
+        let isFinished = false;
+
+        function getCoords(e) {
+            return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+        }
+
+        pieces.forEach(p => {
+            p.addEventListener('mousedown', handleStart);
+            p.addEventListener('touchstart', handleStart, {passive: false});
+        });
+
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('touchmove', handleMove, {passive: false});
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchend', handleEnd);
+
+        function handleStart(e) {
+            if (isFinished || e.target.closest('.piece.snapped')) return;
+            
+            activePiece = e.target.closest('.piece');
+            if (!activePiece) return;
+
+            const pos = getCoords(e);
+            const rect = activePiece.getBoundingClientRect();
+            
+            // Calculate where the user grabbed the piece relative to its top-left corner
+            offsetX = pos.x - rect.left;
+            offsetY = pos.y - rect.top;
+            
+            activePiece.style.zIndex = '100'; // Bring to front
+            activePiece.style.transition = 'none'; // Remove transition for 1:1 finger tracking
+            
+            // Straighten the piece out so it aligns perfectly with the target
+            activePiece.style.transform = 'rotate(0deg)'; 
+            
+            if(navigator.vibrate) navigator.vibrate(10);
+        }
+
+        function handleMove(e) {
+            if (!activePiece) return;
+            e.preventDefault(); // Prevent screen scroll while dragging
+            
+            const pos = getCoords(e);
+            
+            // Update position based on finger movement
+            activePiece.style.left = (pos.x - offsetX) + 'px';
+            activePiece.style.top = (pos.y - offsetY) + 'px';
+            // Disable right/bottom rules from initial CSS
+            activePiece.style.right = 'auto'; 
+            activePiece.style.bottom = 'auto'; 
+        }
+
+        function handleEnd() {
+            if (!activePiece) return;
+            
+            const targetRect = target.getBoundingClientRect();
+            const activeRect = activePiece.getBoundingClientRect();
+            
+            // Since the piece and target are identical in size, 
+            // checking the distance between their top-left corners acts as a perfect proximity check.
+            const dist = Math.hypot(targetRect.left - activeRect.left, targetRect.top - activeRect.top);
+
+            if (dist < 60) {
+                // SNAPPED!
+                activePiece.classList.add('snapped');
+                
+                // Append it directly to the target zone so it stays locked even if screen resizes
+                target.appendChild(activePiece);
+                activePiece.style.left = '0px';
+                activePiece.style.top = '0px';
+                activePiece.style.transition = 'none'; // Lock instantly
+                
+                piecesSnapped++;
+                if(navigator.vibrate) navigator.vibrate([20, 30]); // Satisfying snap haptic
+
+                if (piecesSnapped === 4) triggerFinale();
+                
+            } else {
+                // MISSED - Toss it back slightly rotated
+                activePiece.style.transition = 'transform 0.4s ease';
+                activePiece.style.transform = `rotate(${Math.random() * 40 - 20}deg)`;
+                activePiece.style.zIndex = '30';
+            }
+            
+            activePiece = null;
+        }
+
+        // --- 3. FINALE SEQUENCE ---
+        function triggerFinale() {
+            isFinished = true;
+            
+            document.getElementById('instruction-text').style.opacity = '0';
+            
+            // 1. Reveal Golden Lines
+            setTimeout(() => {
+                target.classList.add('mended');
+                if(navigator.vibrate) navigator.vibrate([50, 100, 50]); // Gold activation hum
+            }, 300);
+
+            // 2. Supernova Flash and Reveal
+            setTimeout(() => {
+                if(navigator.vibrate) navigator.vibrate([100, 50, 400]); 
+                
+                const overlay = document.getElementById('supernova-overlay');
+                overlay.style.transition = 'opacity 0.2s ease-in';
+                overlay.style.opacity = '1';
+
+                setTimeout(() => {
+                    // Hide heart completely
+                    target.style.display = 'none';
+                    
+                    // Show Letter
+                    document.getElementById('final-screen').classList.add('active');
+                    
+                    // Speed up dust and make it distinctly gold
+                    particles.forEach(p => p.v *= 6); 
+                    
+                    // Fade out flash
+                    overlay.style.transition = 'opacity 1.5s ease-out';
+                    overlay.style.opacity = '0';
+                }, 400);
+
+            }, 2500); // Wait 2.5s for her to admire the mended heart
+        }
+    </script>
+</body>
+</html>
