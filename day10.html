@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Day 10 ✨</title>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
+
+        :root {
+            --bg-deep: #030102;
+            --rosegold-light: #e0bfb8;
+            --rosegold-main: #b76e79;
+            --aurora-1: #ff2a5f;
+            --aurora-2: #b76e79;
+            --text-light: #f3e5e5;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none; touch-action: none;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-light);
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+            height: 100dvh; width: 100vw;
+            position: fixed; top: 0; left: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        /* --- THE CANVAS --- */
+        #aurora-canvas {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
+        }
+
+        /* --- UI HEADERS --- */
+        .instruction-overlay {
+            position: absolute; top: 10%; width: 100%;
+            text-align: center; z-index: 5;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(1.6rem, 5vw, 2.2rem); 
+            color: var(--rosegold-light); font-style: italic;
+            text-shadow: 0 0 15px rgba(183, 110, 121, 0.6);
+            pointer-events: none; transition: opacity 1s ease;
+            padding: 0 25px; line-height: 1.3;
+        }
+
+        .sub-instruction {
+            font-family: 'Montserrat', sans-serif; 
+            font-size: clamp(0.6rem, 2.5vw, 0.75rem);
+            letter-spacing: 4px; text-transform: uppercase; color: var(--rosegold-main);
+            margin-top: 15px; font-weight: 400; font-style: normal;
+        }
+
+        /* --- STABILITY BAR --- */
+        #progress-container {
+            position: absolute; bottom: 10%; width: 60%; max-width: 200px;
+            height: 2px; background: rgba(255,255,255,0.1);
+            z-index: 20; opacity: 0; transition: opacity 0.5s ease;
+        }
+        #progress-bar {
+            width: 0%; height: 100%; background: var(--aurora-1);
+            box-shadow: 0 0 10px var(--aurora-1);
+        }
+
+        /* --- TOUCH POINTS (Visual Guides) --- */
+        .touch-guide {
+            position: absolute; width: 60px; height: 60px;
+            border: 1px solid rgba(183, 110, 121, 0.3);
+            border-radius: 50%; z-index: 5;
+            display: flex; justify-content: center; align-items: center;
+            animation: pulseGuide 2s infinite ease-in-out;
+            transition: opacity 0.5s ease;
+        }
+        .guide-top { top: 25%; }
+        .guide-bottom { bottom: 25%; }
+
+        .guide-inner {
+            width: 10px; height: 10px; background: var(--rosegold-main);
+            border-radius: 50%; box-shadow: 0 0 15px var(--rosegold-main);
+        }
+
+        /* --- FINAL REVEAL CARD --- */
+        #final-screen {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; z-index: 100;
+            transition: opacity 2s ease;
+        }
+        #final-screen.active { opacity: 1; pointer-events: all; }
+
+        .reveal-card {
+            background: linear-gradient(180deg, rgba(20, 10, 12, 0.9) 0%, rgba(5, 2, 3, 0.98) 100%);
+            border: 1px solid rgba(183, 110, 121, 0.3); border-radius: 24px;
+            padding: clamp(35px, 8vw, 50px) clamp(20px, 6vw, 30px);
+            text-align: center; width: 88%; max-width: 400px;
+            max-height: 85dvh; overflow-y: auto; scrollbar-width: none;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 40px rgba(183, 110, 121, 0.1);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            transform: scale(0.9) translateY(20px); transition: transform 2s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        #final-screen.active .reveal-card { transform: scale(1) translateY(0); }
+
+        .reveal-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.2rem, 8vw, 3rem); color: var(--rosegold-light); font-style: italic; margin-bottom: 15px; }
+        .reveal-body { font-size: clamp(0.95rem, 4vw, 1.1rem); color: #d8c8cb; line-height: 1.8; font-weight: 300; margin-bottom: 30px; white-space: pre-line; }
+        .reveal-footer { font-size: 0.75rem; letter-spacing: 4px; color: var(--rosegold-main); text-transform: uppercase; font-weight: 600; }
+
+        @keyframes pulseGuide { 0%, 100% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(1.2); opacity: 0.6; } }
+    </style>
+</head>
+<body>
+
+    <canvas id="aurora-canvas"></canvas>
+
+    <div class="instruction-overlay" id="instruction-text">
+        The shortest distance between two points...
+        <div class="sub-instruction">Touch both points to connect</div>
+    </div>
+
+    <div class="touch-guide guide-top" id="guide-1"><div class="guide-inner"></div></div>
+    <div class="touch-guide guide-bottom" id="guide-2"><div class="guide-inner"></div></div>
+
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <div id="final-screen">
+        <div class="reveal-card">
+            <h1 class="reveal-title">The Connection</h1>
+            <div style="width: 40px; height: 1px; background: var(--rosegold-main); margin: 0 auto 20px auto;"></div>
+            <p class="reveal-body">
+                We could be a thousand miles apart, or just a heartbeat away. 
+                
+                But as long as we are both reaching for each other, there is no distance too great to cross. You are my light in every dark sky.
+                
+                Good morning, Ammu.
+            </p>
+            <div class="reveal-footer">Day 10 Unlocked ✨</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('aurora-canvas');
+        const ctx = canvas.getContext('2d');
+        const progressBar = document.getElementById('progress-bar');
+        const progressContainer = document.getElementById('progress-container');
+        
+        let width, height;
+        let points = []; // Stores active touch points
+        let bridgeActive = false;
+        let progress = 0;
+        let isUnlocked = false;
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', init);
+        init();
+
+        // --- MULTI-TOUCH LOGIC ---
+        function handleTouch(e) {
+            if (isUnlocked) return;
+            e.preventDefault();
+            
+            // Convert touch list to array of coordinates
+            const touches = Array.from(e.touches);
+            points = touches.map(t => ({ x: t.clientX, y: t.clientY }));
+
+            if (points.length >= 2) {
+                if (!bridgeActive) {
+                    bridgeActive = true;
+                    progressContainer.style.opacity = '1';
+                    document.getElementById('guide-1').style.opacity = '0';
+                    document.getElementById('guide-2').style.opacity = '0';
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }
+            } else {
+                bridgeActive = false;
+                progress = 0;
+                progressContainer.style.opacity = '0';
+                document.getElementById('guide-1').style.opacity = '1';
+                document.getElementById('guide-2').style.opacity = '1';
+                progressBar.style.width = '0%';
+            }
+        }
+
+        window.addEventListener('touchstart', handleTouch, { passive: false });
+        window.addEventListener('touchmove', handleTouch, { passive: false });
+        window.addEventListener('touchend', handleTouch, { passive: false });
+
+        // Desktop Fallback (Spacebar + Click for testing)
+        window.addEventListener('mousedown', (e) => {
+            if(points.length < 1) points.push({x: e.clientX, y: e.clientY});
+            else if(points.length === 1) {
+                points.push({x: e.clientX, y: e.clientY});
+                bridgeActive = true;
+                progressContainer.style.opacity = '1';
+            }
+        });
+
+        // --- ANIMATION LOOP ---
+        let time = 0;
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            time += 0.02;
+
+            if (bridgeActive && points.length >= 2) {
+                drawAurora(points[0], points[1]);
+                
+                // Advance Progress
+                progress += 0.5; 
+                progressBar.style.width = progress + '%';
+
+                if (progress >= 100 && !isUnlocked) {
+                    triggerFinale();
+                }
+            } else {
+                drawAmbientStars();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawAurora(p1, p2) {
+            const steps = 40;
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            
+            // Draw multiple layers for the Aurora effect
+            for (let layer = 0; layer < 3; layer++) {
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const x = p1.x + dx * t;
+                    const y = p1.y + dy * t;
+
+                    // Wave math
+                    const distortion = Math.sin(t * 10 + time + layer) * (20 + layer * 10);
+                    const nx = x + Math.cos(time + t * 5) * 10;
+                    const ny = y + distortion;
+
+                    ctx.lineTo(nx, ny);
+                }
+
+                ctx.shadowBlur = 20 + (layer * 10);
+                ctx.shadowColor = layer === 0 ? '#ff2a5f' : '#b76e79';
+                ctx.strokeStyle = `rgba(183, 110, 121, ${0.4 - layer * 0.1})`;
+                ctx.lineWidth = 15 - layer * 4;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        function drawAmbientStars() {
+            ctx.fillStyle = "white";
+            for (let i = 0; i < 30; i++) {
+                const x = (Math.sin(i + time * 0.1) * 0.5 + 0.5) * width;
+                const y = (Math.cos(i * 2 + time * 0.05) * 0.5 + 0.5) * height;
+                ctx.globalAlpha = Math.random() * 0.5;
+                ctx.beginPath();
+                ctx.arc(x, y, 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        function triggerFinale() {
+            isUnlocked = true;
+            if (navigator.vibrate) navigator.vibrate([100, 50, 200, 50, 500]);
+            
+            document.getElementById('instruction-text').style.opacity = '0';
+            progressContainer.style.opacity = '0';
+
+            setTimeout(() => {
+                document.getElementById('final-screen').classList.add('active');
+            }, 800);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
