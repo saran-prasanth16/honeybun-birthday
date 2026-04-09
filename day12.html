@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Day 11 ✨</title>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@200;300;400;500&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
+
+        :root {
+            --bg-deep: #050203;
+            --bg-light: #1c0a0f;
+            --rosegold-light: #e0bfb8;
+            --rosegold-main: #b76e79;
+            --rosegold-dark: #63333d;
+            --paper-color: #f4ecd8;
+            --ink-color: #2b2b2b;
+            --text-light: #f3e5e5;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            background-image: radial-gradient(circle at 50% 30%, var(--bg-light) 0%, var(--bg-deep) 100%);
+            color: var(--text-light);
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+            height: 100dvh; width: 100vw;
+            position: fixed; top: 0; left: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+        }
+
+        /* --- AMBIENT DUST --- */
+        #particle-canvas {
+            position: absolute; top: 0; left: 0;
+            width: 100vw; height: 100dvh;
+            z-index: 1; pointer-events: none;
+        }
+
+        /* --- INTRO OVERLAY (To unlock keyboard & haptics) --- */
+        #intro-overlay {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh;
+            background: rgba(5, 2, 3, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 100; transition: opacity 0.8s ease; cursor: pointer;
+        }
+
+        .intro-text {
+            font-family: 'Cormorant Garamond', serif; font-size: clamp(1.8rem, 6vw, 2.5rem); 
+            color: var(--rosegold-light); font-style: italic; text-align: center;
+            padding: 0 30px; line-height: 1.4; margin-bottom: 30px;
+        }
+
+        .begin-btn {
+            background: linear-gradient(135deg, var(--rosegold-main) 0%, var(--rosegold-dark) 100%);
+            border: 1px solid var(--rosegold-light); padding: 15px 40px; border-radius: 30px;
+            color: var(--text-light); font-family: 'Montserrat', sans-serif; font-size: 0.85rem;
+            letter-spacing: 3px; text-transform: uppercase; cursor: pointer;
+            box-shadow: 0 10px 30px rgba(183, 110, 121, 0.4); animation: pulseGlow 2s infinite alternate;
+        }
+
+        /* --- UI HEADERS --- */
+        .instruction-overlay {
+            width: 100%; text-align: center; z-index: 5;
+            margin-top: 8vh; margin-bottom: 3vh;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(1.5rem, 5vw, 2rem); 
+            color: var(--rosegold-light); font-style: italic;
+            text-shadow: 0 0 15px rgba(183, 110, 121, 0.6);
+            transition: opacity 1s ease;
+        }
+
+        .sub-instruction {
+            font-family: 'Montserrat', sans-serif; font-size: clamp(0.65rem, 2vw, 0.75rem);
+            letter-spacing: 4px; text-transform: uppercase; color: var(--rosegold-main);
+            margin-top: 10px; font-weight: 400; font-style: normal; animation: pulseHint 2s infinite alternate;
+        }
+
+        /* --- THE HIDDEN INPUT --- */
+        /* This summons the native mobile keyboard but remains entirely invisible */
+        #magic-input {
+            position: absolute; top: -1000px; left: -1000px; opacity: 0; width: 1px; height: 1px;
+        }
+
+        /* --- THE TYPEWRITER PAPER --- */
+        #paper-container {
+            position: relative; z-index: 10;
+            width: 85%; max-width: 400px; height: 220px;
+            background: var(--paper-color);
+            border-radius: 4px 4px 0 0;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.8), inset 0 0 40px rgba(0,0,0,0.1);
+            background-image: repeating-linear-gradient(transparent, transparent 27px, rgba(183,110,121,0.1) 28px);
+            padding: 20px 25px;
+            overflow: hidden;
+            /* Simulates paper rolling up out of the machine */
+            border-bottom: 5px solid #111;
+        }
+
+        .typed-text {
+            font-family: 'Courier Prime', monospace;
+            font-size: 1.1rem; color: var(--ink-color);
+            line-height: 28px; white-space: pre-wrap;
+            font-weight: 700; opacity: 0.9;
+        }
+
+        .cursor {
+            display: inline-block; width: 10px; height: 18px;
+            background-color: var(--ink-color); margin-left: 2px;
+            vertical-align: text-bottom; animation: blink 1s step-end infinite;
+        }
+
+        /* --- ON-SCREEN VINTAGE KEYBOARD --- */
+        #vintage-keyboard {
+            position: relative; z-index: 15;
+            width: 90%; max-width: 450px;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            margin-top: 20px;
+            padding: 15px; background: rgba(0,0,0,0.4);
+            border-radius: 20px; border: 1px solid rgba(183,110,121,0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+        }
+
+        .key-row { display: flex; justify-content: center; gap: 8px; }
+
+        .vintage-key {
+            width: clamp(28px, 8vw, 40px); height: clamp(28px, 8vw, 40px);
+            border-radius: 50%;
+            background: radial-gradient(circle, #2a1117 0%, #110508 100%);
+            border: 2px solid var(--rosegold-dark);
+            color: var(--rosegold-light);
+            font-family: 'Courier Prime', monospace; font-size: 1rem; font-weight: 700;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 4px 0 var(--rosegold-main), 0 8px 10px rgba(0,0,0,0.6);
+            transition: transform 0.05s ease, box-shadow 0.05s ease;
+        }
+
+        /* The physical press down effect */
+        .vintage-key.pressed {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 var(--rosegold-main), 0 2px 5px rgba(0,0,0,0.8);
+            background: radial-gradient(circle, #3d1a22 0%, #110508 100%);
+            border-color: var(--rosegold-main);
+            color: #fff;
+        }
+
+        /* --- FINAL REVEAL CARD --- */
+        #final-screen {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; z-index: 100;
+            transition: opacity 1.5s ease 0.5s; 
+        }
+        #final-screen.active { opacity: 1; pointer-events: all; }
+
+        .reveal-card {
+            background: linear-gradient(180deg, rgba(20, 10, 12, 0.9) 0%, rgba(5, 2, 3, 0.98) 100%);
+            border: 1px solid rgba(183, 110, 121, 0.3); border-radius: 24px;
+            padding: clamp(30px, 8vw, 50px) clamp(20px, 6vw, 30px);
+            text-align: center; width: 88%; max-width: 400px;
+            max-height: 85dvh; overflow-y: auto; scrollbar-width: none;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 40px rgba(183, 110, 121, 0.15);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            transform: scale(0.9) translateY(20px); transition: transform 1.5s cubic-bezier(0.25, 0.8, 0.25, 1) 0.5s;
+        }
+        .reveal-card::-webkit-scrollbar { display: none; }
+        #final-screen.active .reveal-card { transform: scale(1) translateY(0); }
+
+        .reveal-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.2rem, 8vw, 3rem); color: var(--rosegold-light); font-style: italic; margin-bottom: 15px; }
+        .reveal-body { font-size: clamp(0.95rem, 4vw, 1.1rem); color: #d8c8cb; line-height: 1.8; font-weight: 300; margin-bottom: 30px; white-space: pre-line; }
+        .reveal-footer { font-size: 0.75rem; letter-spacing: 4px; color: var(--rosegold-main); text-transform: uppercase; font-weight: 600; }
+
+        @keyframes pulseHint { 0% { opacity: 0.4; } 100% { opacity: 1; } }
+        @keyframes pulseGlow { 0% { box-shadow: 0 10px 30px rgba(183, 110, 121, 0.2); } 100% { box-shadow: 0 10px 40px rgba(183, 110, 121, 0.6); } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <canvas id="particle-canvas"></canvas>
+
+    <input type="text" id="magic-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+
+    <div id="intro-overlay">
+        <h1 class="intro-text">Sometimes, words speak for themselves.</h1>
+        <div class="begin-btn" id="start-btn">Sit at the Typewriter</div>
+    </div>
+
+    <div class="instruction-overlay" id="instruction-text">
+        The Midnight Typewriter
+        <div class="sub-instruction">Type your name...</div>
+    </div>
+
+    <div id="paper-container">
+        <span class="typed-text" id="typed-text"></span><span class="cursor" id="cursor"></span>
+    </div>
+
+    <div id="vintage-keyboard">
+        <div class="key-row">
+            <div class="vintage-key">Q</div><div class="vintage-key">W</div><div class="vintage-key">E</div>
+            <div class="vintage-key">R</div><div class="vintage-key">T</div><div class="vintage-key">Y</div>
+            <div class="vintage-key">U</div><div class="vintage-key">I</div><div class="vintage-key">O</div><div class="vintage-key">P</div>
+        </div>
+        <div class="key-row">
+            <div class="vintage-key">A</div><div class="vintage-key">S</div><div class="vintage-key">D</div>
+            <div class="vintage-key">F</div><div class="vintage-key">G</div><div class="vintage-key">H</div>
+            <div class="vintage-key">J</div><div class="vintage-key">K</div><div class="vintage-key">L</div>
+        </div>
+        <div class="key-row">
+            <div class="vintage-key">Z</div><div class="vintage-key">X</div><div class="vintage-key">C</div>
+            <div class="vintage-key">V</div><div class="vintage-key">B</div><div class="vintage-key">N</div><div class="vintage-key">M</div>
+        </div>
+    </div>
+
+    <div id="final-screen">
+        <div class="reveal-card">
+            <h1 class="reveal-title">The Masterpiece</h1>
+            <div style="width: 40px; height: 1px; background: var(--rosegold-main); margin: 0 auto 20px auto;"></div>
+            <p class="reveal-body">
+                I thought I was writing my own story, but every keystroke, every word, every silence between the lines... they were all just leading me to you.
+                
+                You are my favorite chapter.
+                
+                Good morning, Ammu.
+            </p>
+            <div class="reveal-footer">Day 11 Unlocked ✨</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. AMBIENT PARTICLES ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function initCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            particles = [];
+            for (let i = 0; i < 40; i++) {
+                particles.push({
+                    x: Math.random() * width, y: Math.random() * height,
+                    r: Math.random() * 1.5, alpha: Math.random(),
+                    v: Math.random() * 0.3 + 0.1, pulsate: Math.random() * 0.02 + 0.01
+                });
+            }
+        }
+        window.addEventListener('resize', initCanvas);
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.y -= p.v;
+                if (p.y < -10) { p.y = height + 10; p.x = Math.random() * width; }
+                p.alpha += p.pulsate;
+                if (p.alpha >= 0.8 || p.alpha <= 0.1) p.pulsate *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(224, 191, 184, ${p.alpha})`; 
+                ctx.fill();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        initCanvas(); animateParticles();
+
+        // --- 2. THE TYPEWRITER MAGIC ---
+        const magicInput = document.getElementById('magic-input');
+        const typedTextEl = document.getElementById('typed-text');
+        const vintageKeys = document.querySelectorAll('.vintage-key');
+        
+        // The secret poem that writes itself. (Exactly 106 characters).
+        // She only needs to type about 15-20 random letters to finish the whole poem depending on typing speed.
+        const poem = "You are the poetry I never knew how to write. Every word I type is just another way to say I love you.";
+        let poemIndex = 0;
+        let isFinished = false;
+
+        // Start the experience
+        document.getElementById('intro-overlay').addEventListener('click', () => {
+            document.getElementById('intro-overlay').style.opacity = '0';
+            setTimeout(() => document.getElementById('intro-overlay').style.display = 'none', 800);
+            
+            // Focus the hidden input to bring up the native phone keyboard
+            magicInput.focus();
+        });
+
+        // Keep focus if she taps anywhere on the screen
+        document.body.addEventListener('click', () => {
+            if(!isFinished) magicInput.focus();
+        });
+
+        // The Magic Interception
+        magicInput.addEventListener('input', (e) => {
+            if (isFinished) return;
+
+            // Clear the actual input so it never overflows or causes scroll issues
+            magicInput.value = '';
+
+            // Haptic Feedback for mechanical clack
+            if (navigator.vibrate) navigator.vibrate(20);
+
+            // Animate a random vintage key pressing down
+            const randomKey = vintageKeys[Math.floor(Math.random() * vintageKeys.length)];
+            randomKey.classList.add('pressed');
+            setTimeout(() => randomKey.classList.remove('pressed'), 80);
+
+            // Type the next letter of the poem
+            if (poemIndex < poem.length) {
+                typedTextEl.textContent += poem[poemIndex];
+                poemIndex++;
+                
+                // Auto-scroll the paper container down as she types
+                const paper = document.getElementById('paper-container');
+                paper.scrollTop = paper.scrollHeight;
+            }
+
+            // Check Win Condition
+            if (poemIndex >= poem.length) {
+                triggerFinale();
+            }
+        });
+
+        // Catch backspaces so she doesn't delete the poem, but it still feels mechanical
+        magicInput.addEventListener('keydown', (e) => {
+            if (e.key === "Backspace" || e.key === "Enter") {
+                if(navigator.vibrate) navigator.vibrate(20);
+                const randomKey = vintageKeys[Math.floor(Math.random() * vintageKeys.length)];
+                randomKey.classList.add('pressed');
+                setTimeout(() => randomKey.classList.remove('pressed'), 80);
+            }
+        });
+
+        // --- 3. FINALE SEQUENCE ---
+        function triggerFinale() {
+            isFinished = true;
+            magicInput.blur(); // Hide the native keyboard
+            
+            document.getElementById('instruction-text').style.opacity = '0';
+            document.getElementById('vintage-keyboard').style.opacity = '0';
+            document.getElementById('cursor').style.display = 'none';
+
+            // Long haptic vibration
+            if(navigator.vibrate) navigator.vibrate([100, 50, 200]);
+
+            setTimeout(() => {
+                document.getElementById('final-screen').classList.add('active');
+                particles.forEach(p => p.v *= 4); // Speed up ambient dust
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
