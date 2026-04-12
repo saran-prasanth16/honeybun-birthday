@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Day 13 ✨</title>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
+
+        :root {
+            --bg-deep: #050203;
+            --bg-sunset: #2b1114;
+            --rosegold-light: #e0bfb8;
+            --rosegold-main: #b76e79;
+            --rosegold-dark: #63333d;
+            --golden-hour: #ffcf70;
+            --text-light: #f3e5e5;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-light);
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+            height: 100dvh; width: 100vw;
+            position: fixed; top: 0; left: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: background-color 2s ease;
+        }
+
+        /* Ambient Background Light mapped to the slider */
+        #bg-light {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 120%, var(--bg-sunset) 0%, var(--bg-deep) 100%);
+            opacity: 0; z-index: 0;
+            transition: opacity 0.5s ease; pointer-events: none;
+        }
+
+        #particle-canvas {
+            position: absolute; top: 0; left: 0;
+            width: 100vw; height: 100dvh;
+            z-index: 1; pointer-events: none;
+        }
+
+        /* --- UI HEADERS --- */
+        .instruction-overlay {
+            position: absolute; top: 10%; width: 100%;
+            text-align: center; z-index: 5;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(1.8rem, 6vw, 2.5rem); 
+            color: var(--rosegold-light); font-style: italic;
+            text-shadow: 0 0 15px rgba(183, 110, 121, 0.6);
+            pointer-events: none; transition: opacity 1s ease;
+            padding: 0 20px; line-height: 1.3;
+        }
+
+        .sub-instruction {
+            font-family: 'Montserrat', sans-serif; 
+            font-size: clamp(0.65rem, 2.5vw, 0.8rem);
+            letter-spacing: 4px; text-transform: uppercase; color: var(--rosegold-main);
+            margin-top: 15px; font-weight: 400; font-style: normal;
+        }
+
+        /* --- THE LIGHT & SHADOW SCENE --- */
+        #scene-container {
+            position: relative;
+            width: 300px; height: 300px;
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10; margin-top: -5vh;
+        }
+
+        /* The Hidden Golden Text */
+        #hidden-text {
+            position: absolute;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.8rem; font-style: italic; color: var(--golden-hour);
+            text-align: center; z-index: 5;
+            text-shadow: 0 0 20px rgba(255, 207, 112, 0);
+            opacity: 0.1; /* Barely visible in the dark */
+            transition: opacity 0.3s ease, text-shadow 0.3s ease, transform 0.3s ease;
+        }
+
+        /* The 3D Emblem casting the shadow */
+        #emblem {
+            position: absolute; z-index: 20;
+            width: 120px; height: 120px;
+            /* Creates a beautifully embossed, metallic rose-gold look */
+            background: linear-gradient(135deg, #e0bfb8 0%, #b76e79 50%, #63333d 100%);
+            border-radius: 20px; transform: rotate(45deg);
+            box-shadow: inset 2px 2px 5px rgba(255,255,255,0.4), inset -3px -3px 10px rgba(0,0,0,0.5);
+            display: flex; justify-content: center; align-items: center;
+            /* Will be dynamically updated by JS */
+            filter: drop-shadow(0px 30px 5px rgba(0,0,0,0.9)) drop-shadow(0px 60px 15px rgba(0,0,0,0.7));
+            transition: filter 0.1s linear; 
+        }
+
+        /* Inner geometric detail of the emblem */
+        #emblem::after {
+            content: ''; position: absolute;
+            width: 70px; height: 70px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 5px;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.3);
+        }
+
+        /* --- THE SUN CONTROLLER --- */
+        #slider-container {
+            position: absolute; bottom: 12%; width: 80%; max-width: 400px;
+            z-index: 30; display: flex; flex-direction: column; align-items: center;
+            transition: opacity 1s ease;
+        }
+
+        .slider-label {
+            font-size: 0.7rem; letter-spacing: 3px; text-transform: uppercase;
+            color: var(--rosegold-main); margin-bottom: 20px; font-weight: 500;
+        }
+
+        /* Custom Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent;
+        }
+        input[type=range]:focus { outline: none; }
+        
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; cursor: pointer;
+            background: rgba(183, 110, 121, 0.2); border-radius: 2px;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            height: 24px; width: 24px; border-radius: 50%;
+            background: var(--rosegold-light); cursor: pointer;
+            -webkit-appearance: none; margin-top: -10px;
+            box-shadow: 0 0 15px var(--rosegold-main), inset 0 0 5px #fff;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Slider Golden Hour Mode */
+        input[type=range].golden::-webkit-slider-thumb {
+            background: var(--golden-hour);
+            box-shadow: 0 0 25px var(--golden-hour), 0 0 50px rgba(255, 207, 112, 0.5);
+        }
+        input[type=range].golden::-webkit-slider-runnable-track {
+            background: linear-gradient(90deg, rgba(183,110,121,0.2) 0%, var(--golden-hour) 100%);
+        }
+
+        /* --- FINAL REVEAL CARD --- */
+        #final-screen {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; z-index: 100;
+            transition: opacity 2s ease 0.5s; 
+        }
+        #final-screen.active { opacity: 1; pointer-events: all; }
+
+        .reveal-card {
+            background: linear-gradient(180deg, rgba(20, 10, 12, 0.85) 0%, rgba(10, 5, 6, 0.95) 100%);
+            border: 1px solid rgba(255, 207, 112, 0.3); border-radius: 24px;
+            padding: clamp(30px, 8vw, 50px) clamp(20px, 6vw, 30px);
+            text-align: center; width: 88%; max-width: 420px;
+            max-height: 85dvh; overflow-y: auto; scrollbar-width: none;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 50px rgba(255, 207, 112, 0.2);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            transform: scale(0.9) translateY(20px); transition: transform 2s cubic-bezier(0.25, 0.8, 0.25, 1) 0.5s;
+        }
+        .reveal-card::-webkit-scrollbar { display: none; }
+        #final-screen.active .reveal-card { transform: scale(1) translateY(0); }
+
+        .reveal-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.2rem, 8vw, 3rem); color: var(--golden-hour); font-style: italic; margin-bottom: 15px; text-shadow: 0 0 10px rgba(255, 207, 112, 0.3); }
+        .reveal-body { font-size: clamp(0.95rem, 4vw, 1.1rem); color: #d8c8cb; line-height: 1.8; font-weight: 300; margin-bottom: 30px; white-space: pre-line; }
+        .reveal-footer { font-size: 0.75rem; letter-spacing: 4px; color: var(--rosegold-main); text-transform: uppercase; font-weight: 600; }
+
+        /* Supernova Overlay */
+        #supernova-overlay {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh;
+            background-color: var(--golden-hour); opacity: 0; pointer-events: none; z-index: 80;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="bg-light"></div>
+    <canvas id="particle-canvas"></canvas>
+    <div id="supernova-overlay"></div>
+
+    <div class="instruction-overlay" id="instruction-text">
+        You changed the way I see everything.
+        <div class="sub-instruction">Control the Sun</div>
+    </div>
+
+    <div id="scene-container">
+        <div id="hidden-text">I found the light.</div>
+        
+        <div id="emblem"></div>
+    </div>
+
+    <div id="slider-container">
+        <div class="slider-label">Sweep the horizon</div>
+        <input type="range" id="sun-slider" min="0" max="100" value="0" step="1">
+    </div>
+
+    <div id="final-screen">
+        <div class="reveal-card">
+            <h1 class="reveal-title">The Golden Hour</h1>
+            <div style="width: 40px; height: 1px; background: var(--golden-hour); margin: 0 auto 20px auto; box-shadow: 0 0 10px var(--golden-hour);"></div>
+            <p class="reveal-body">
+                At this point…
+                I feel like I don’t even need to say much anymore, Because somewhere between everything I’ve said,
+                and everything I haven’t… I think you already know.
+                What you’ve become to me. What I feel when I think about you.
+                And how real all of this is., i love you Honeybun.
+            </p>
+            <div class="reveal-footer">Day 13 Unlocked ✨</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. AMBIENT PARTICLES ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function initCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            particles = [];
+            for (let i = 0; i < 40; i++) {
+                particles.push({
+                    x: Math.random() * width, y: Math.random() * height,
+                    r: Math.random() * 1.5, alpha: Math.random(),
+                    v: Math.random() * 0.3 + 0.1, pulsate: Math.random() * 0.02 + 0.01,
+                    isGold: false // Will toggle to true during finale
+                });
+            }
+        }
+        window.addEventListener('resize', initCanvas);
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.y -= p.v;
+                if (p.y < -10) { p.y = height + 10; p.x = Math.random() * width; }
+                p.alpha += p.pulsate;
+                if (p.alpha >= 0.8 || p.alpha <= 0.1) p.pulsate *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                
+                // Color shifts dynamically based on particle state
+                if (p.isGold) {
+                    ctx.fillStyle = `rgba(255, 207, 112, ${p.alpha})`; 
+                } else {
+                    ctx.fillStyle = `rgba(224, 191, 184, ${p.alpha})`; 
+                }
+                ctx.fill();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        initCanvas(); animateParticles();
+
+        // --- 2. DYNAMIC SHADOW & LIGHT LOGIC ---
+        const slider = document.getElementById('sun-slider');
+        const emblem = document.getElementById('emblem');
+        const hiddenText = document.getElementById('hidden-text');
+        const bgLight = document.getElementById('bg-light');
+        let isUnlocked = false;
+
+        // Initialize shadow to match starting slider position (0)
+        updateLight(0);
+
+        slider.addEventListener('input', (e) => {
+            if (isUnlocked) return;
+            const val = parseInt(e.target.value);
+            
+            // Haptic buzz as the slider moves
+            if (val % 5 === 0 && navigator.vibrate) navigator.vibrate(5);
+            
+            updateLight(val);
+
+            // Win Condition Trigger
+            if (val >= 98) {
+                triggerGoldenHour();
+            }
+        });
+
+        function updateLight(val) {
+            // Slider goes from 0 (Left) to 100 (Right).
+            // When light is Left (0), shadow goes Right (+X).
+            // When light is Right (100), shadow goes Left (-X).
+            
+            // X offset goes from +150px to -150px
+            const shadowX = ((50 - val) / 50) * 150; 
+            
+            // Y offset is shortest at the center (50), longest at the edges
+            // Creating an arc effect mimicking the sun's trajectory
+            const shadowY = 20 + Math.abs(50 - val) * 1.2; 
+            
+            // Blur increases as the shadow gets longer
+            const blur1 = 5 + Math.abs(50 - val) * 0.2;
+            const blur2 = 15 + Math.abs(50 - val) * 0.4;
+
+            // Apply the complex multi-layer drop shadow for realistic 3D depth
+            emblem.style.filter = `
+                drop-shadow(${shadowX * 0.3}px ${shadowY * 0.3}px ${blur1}px rgba(0,0,0,0.9)) 
+                drop-shadow(${shadowX}px ${shadowY}px ${blur2}px rgba(0,0,0,0.6))
+            `;
+
+            // Rotate the emblem slightly to follow the light source
+            const rotation = 45 + ((val - 50) * 0.2);
+            emblem.style.transform = `rotate(${rotation}deg)`;
+
+            // --- ILLUMINATION LOGIC ---
+            // As slider moves past 60 towards 100, the background and text begin to glow
+            if (val > 60) {
+                const glowIntensity = (val - 60) / 40; // Scales 0 to 1
+                
+                bgLight.style.opacity = glowIntensity * 0.8;
+                
+                hiddenText.style.opacity = 0.1 + (glowIntensity * 0.9);
+                hiddenText.style.textShadow = `0 0 ${glowIntensity * 20}px rgba(255, 207, 112, ${glowIntensity})`;
+                hiddenText.style.transform = `scale(${1 + glowIntensity * 0.05})`;
+
+                if (val > 80) {
+                    slider.classList.add('golden');
+                } else {
+                    slider.classList.remove('golden');
+                }
+            } else {
+                bgLight.style.opacity = 0;
+                hiddenText.style.opacity = 0.1;
+                hiddenText.style.textShadow = 'none';
+                hiddenText.style.transform = 'scale(1)';
+                slider.classList.remove('golden');
+            }
+        }
+
+        // --- 3. FINALE SEQUENCE ---
+        function triggerGoldenHour() {
+            isUnlocked = true;
+            slider.disabled = true;
+            
+            if (navigator.vibrate) navigator.vibrate([50, 100, 50, 200]);
+            
+            // Lock visuals to maximum glow
+            hiddenText.style.opacity = '1';
+            hiddenText.style.textShadow = '0 0 30px rgba(255, 207, 112, 1)';
+            bgLight.style.opacity = '1';
+            
+            document.getElementById('instruction-text').style.opacity = '0';
+            document.getElementById('slider-container').style.opacity = '0';
+
+            // Flash the screen
+            setTimeout(() => {
+                const overlay = document.getElementById('supernova-overlay');
+                overlay.style.transition = 'opacity 0.4s ease-in';
+                overlay.style.opacity = '1';
+
+                setTimeout(() => {
+                    // Hide the scene elements completely
+                    document.getElementById('scene-container').style.display = 'none';
+                    
+                    // Turn all particles to Gold and speed them up
+                    particles.forEach(p => { p.isGold = true; p.v *= 5; });
+                    
+                    // Show Letter
+                    document.getElementById('final-screen').classList.add('active');
+                    
+                    // Fade out flash
+                    overlay.style.transition = 'opacity 2s ease-out';
+                    overlay.style.opacity = '0';
+                }, 600);
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
