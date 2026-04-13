@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Day 14 ✨</title>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Montserrat:wght@200;300;400;500&display=swap');
+
+        :root {
+            --bg-deep: #050203;
+            --bg-light: #1c0a0f;
+            --rosegold-light: #e0bfb8;
+            --rosegold-main: #b76e79;
+            --rosegold-dark: #63333d;
+            --text-light: #f3e5e5;
+            --magic-glow: #ff2a5f;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none; touch-action: none;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            background-image: radial-gradient(circle at 50% 50%, var(--bg-light) 0%, var(--bg-deep) 100%);
+            color: var(--text-light);
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+            height: 100dvh; width: 100vw;
+            position: fixed; top: 0; left: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        /* --- AMBIENT DUST --- */
+        #particle-canvas {
+            position: absolute; top: 0; left: 0;
+            width: 100vw; height: 100dvh;
+            z-index: 1; pointer-events: none;
+        }
+
+        /* --- UI HEADERS --- */
+        .instruction-overlay {
+            position: absolute; top: 8%; width: 100%;
+            text-align: center; z-index: 5;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(1.8rem, 6vw, 2.5rem); 
+            color: var(--rosegold-light); font-style: italic;
+            text-shadow: 0 0 15px rgba(183, 110, 121, 0.6);
+            pointer-events: none; transition: opacity 1s ease;
+            padding: 0 20px; line-height: 1.3;
+        }
+
+        .sub-instruction {
+            font-family: 'Montserrat', sans-serif; 
+            font-size: clamp(0.65rem, 2.5vw, 0.8rem);
+            letter-spacing: 4px; text-transform: uppercase; color: var(--rosegold-main);
+            margin-top: 15px; font-weight: 400; font-style: normal;
+            animation: pulseHint 2s infinite alternate;
+        }
+
+        /* --- THE HEART HOURGLASS --- */
+        #hourglass-container {
+            position: relative;
+            width: 160px; height: 320px;
+            z-index: 20; margin-top: 5vh;
+            cursor: grab;
+            transition: transform 1s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease, filter 0.5s ease;
+            transform-origin: center center;
+            filter: drop-shadow(0 0 20px rgba(183, 110, 121, 0.3));
+        }
+        #hourglass-container:active { cursor: grabbing; transform: scale(0.95); }
+        
+        #hourglass-container.inverted { filter: drop-shadow(0 0 40px rgba(255, 42, 95, 0.5)); }
+        
+        /* The Overload Animation right before it shatters */
+        #hourglass-container.overload {
+            animation: heartOverload 2.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+        }
+
+        .sand-svg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
+        }
+
+        /* The flowing sand animation */
+        #stream-line {
+            stroke-dasharray: 8 6;
+            animation: flowingSand 0.3s linear infinite;
+        }
+
+        /* Supernova Flash Overlay */
+        #supernova-overlay {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh;
+            background-color: #fff; opacity: 0; pointer-events: none; z-index: 60;
+        }
+
+        /* --- FINAL REVEAL CARD --- */
+        #final-screen {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100dvh;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; z-index: 70;
+            transition: opacity 2s ease 0.5s; 
+        }
+        #final-screen.active { opacity: 1; pointer-events: all; }
+
+        .reveal-card {
+            background: linear-gradient(180deg, rgba(20, 10, 12, 0.85) 0%, rgba(10, 5, 6, 0.95) 100%);
+            border: 1px solid rgba(183, 110, 121, 0.3); border-radius: 24px;
+            padding: clamp(30px, 8vw, 50px) clamp(20px, 6vw, 30px);
+            text-align: center; width: 88%; max-width: 420px;
+            max-height: 85dvh; overflow-y: auto; scrollbar-width: none;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 50px rgba(255, 42, 95, 0.2);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            transform: scale(0.9) translateY(20px); transition: transform 2s cubic-bezier(0.25, 0.8, 0.25, 1) 0.5s;
+        }
+        .reveal-card::-webkit-scrollbar { display: none; }
+        #final-screen.active .reveal-card { transform: scale(1) translateY(0); }
+
+        .reveal-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(2.2rem, 8vw, 3rem); color: var(--rosegold-light); font-style: italic; margin-bottom: 15px; }
+        .reveal-body { font-size: clamp(0.95rem, 4vw, 1.1rem); color: #d8c8cb; line-height: 1.8; font-weight: 300; margin-bottom: 30px; white-space: pre-line; }
+        .reveal-footer { font-size: 0.75rem; letter-spacing: 4px; color: var(--rosegold-main); text-transform: uppercase; font-weight: 600; }
+
+        @keyframes pulseHint { 0% { opacity: 0.4; } 100% { opacity: 1; } }
+        
+        @keyframes flowingSand {
+            to { stroke-dashoffset: -14; }
+        }
+
+        @keyframes heartOverload {
+            0% { transform: rotate(180deg) scale(1); filter: drop-shadow(0 0 40px rgba(255, 42, 95, 0.5)); }
+            20% { transform: rotate(180deg) scale(1.1); filter: drop-shadow(0 0 60px rgba(255, 42, 95, 0.8)); }
+            30% { transform: rotate(180deg) scale(1); filter: drop-shadow(0 0 40px rgba(255, 42, 95, 0.5)); }
+            50% { transform: rotate(180deg) scale(1.15); filter: drop-shadow(0 0 80px rgba(255, 42, 95, 0.9)); }
+            60% { transform: rotate(180deg) scale(1); filter: drop-shadow(0 0 50px rgba(255, 42, 95, 0.6)); }
+            80% { transform: rotate(180deg) scale(1.2); filter: drop-shadow(0 0 100px rgba(255, 42, 95, 1)); }
+            100% { transform: rotate(180deg) scale(1.25); filter: drop-shadow(0 0 150px rgba(255, 255, 255, 1)); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="particle-canvas"></canvas>
+    <div id="supernova-overlay"></div>
+
+    <div class="instruction-overlay" id="instruction-text">
+        The waiting is almost over.
+        <div class="sub-instruction" id="hint-text">Swipe up to turn the glass</div>
+    </div>
+
+    <div id="hourglass-container">
+        <svg class="sand-svg" viewBox="0 0 120 260">
+            <defs>
+                <clipPath id="topHeart">
+                    <path d="M 60 40 C 60 10 110 10 110 50 C 110 85 60 125 60 130 C 60 125 10 85 10 50 C 10 10 60 10 60 40 Z"/>
+                </clipPath>
+                <clipPath id="bottomHeart">
+                    <path d="M 60 220 C 60 250 110 250 110 210 C 110 175 60 135 60 130 C 60 135 10 175 10 210 C 10 250 60 250 60 220 Z"/>
+                </clipPath>
+                
+                <linearGradient id="liquid" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#ffb3c1"/>
+                    <stop offset="50%" stop-color="#ff2a5f"/>
+                    <stop offset="100%" stop-color="#63333d"/>
+                </linearGradient>
+
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+
+            <g clip-path="url(#topHeart)">
+                <rect id="sand-a-rect" x="0" y="0" width="120" height="0" fill="url(#liquid)"/>
+            </g>
+
+            <g clip-path="url(#bottomHeart)">
+                <rect id="sand-b-rect" x="0" y="130" width="120" height="130" fill="url(#liquid)"/>
+            </g>
+
+            <line id="stream-line" x1="60" y1="130" x2="60" y2="130" stroke="url(#liquid)" stroke-width="2.5" opacity="0" filter="url(#glow)"/>
+            
+            <path d="M 60 40 C 60 10 110 10 110 50 C 110 85 60 125 60 130 C 60 125 10 85 10 50 C 10 10 60 10 60 40 Z" fill="rgba(255,255,255,0.02)" stroke="rgba(224, 191, 184, 0.4)" stroke-width="1.5"/>
+            <path d="M 60 220 C 60 250 110 250 110 210 C 110 175 60 135 60 130 C 60 135 10 175 10 210 C 10 250 60 250 60 220 Z" fill="rgba(255,255,255,0.02)" stroke="rgba(224, 191, 184, 0.4)" stroke-width="1.5"/>
+            
+            <ellipse cx="60" cy="130" rx="9" ry="4" fill="#63333d" opacity="0.9"/>
+            <ellipse cx="60" cy="130" rx="6" ry="2" fill="#e0bfb8"/>
+        </svg>
+    </div>
+
+    <div id="final-screen">
+        <div class="reveal-card">
+            <h1 class="reveal-title">Almost There</h1>
+            <div style="width: 40px; height: 1px; background: var(--rosegold-main); margin: 0 auto 20px auto; box-shadow: 0 0 10px var(--rosegold-main);"></div>
+            <p class="reveal-body">
+                I’ve poured every ounce of my heart into this journey, counting down every grain of sand until tomorrow. 
+                
+                The wait is finally over. Get ready to celebrate. 
+                
+                Just one more sleep, Ammu.
+            </p>
+            <div class="reveal-footer">Day 14 Unlocked ✨</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. AMBIENT PARTICLES ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function initCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            particles = [];
+            for (let i = 0; i < 40; i++) {
+                particles.push({
+                    x: Math.random() * width, y: Math.random() * height,
+                    r: Math.random() * 1.5 + 0.5, alpha: Math.random(),
+                    v: Math.random() * 0.3 + 0.1, pulsate: Math.random() * 0.02 + 0.01,
+                    isHeart: false, vx: 0, vy: 0
+                });
+            }
+        }
+        window.addEventListener('resize', initCanvas);
+
+        function drawHeartShape(ctx, x, y, size, color, alpha) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(size, size);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.bezierCurveTo(0, -3, 5, -3, 5, 0);
+            ctx.bezierCurveTo(5, 3, 0, 6, 0, 6);
+            ctx.bezierCurveTo(0, 6, -5, 3, -5, 0);
+            ctx.bezierCurveTo(-5, -3, 0, -3, 0, 0);
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                if (p.isHeart) {
+                    p.x += p.vx; p.y += p.vy;
+                    p.vx *= 0.96; p.vy *= 0.96; 
+                    p.y -= 0.5; 
+                    p.alpha -= 0.005; 
+                    if (p.alpha < 0) p.alpha = 0;
+                    drawHeartShape(ctx, p.x, p.y, p.r, '#ff2a5f', p.alpha);
+                } else {
+                    p.y -= p.v;
+                    if (p.y < -10) { p.y = height + 10; p.x = Math.random() * width; }
+                    p.alpha += p.pulsate;
+                    if (p.alpha >= 0.8 || p.alpha <= 0.1) p.pulsate *= -1;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(224, 191, 184, ${p.alpha})`; 
+                    ctx.fill();
+                }
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        initCanvas(); animateParticles();
+
+        // --- 2. HOURGLASS FLIP LOGIC & GYRO SENSOR ---
+        const hgContainer = document.getElementById('hourglass-container');
+        const sandA = document.getElementById('sand-a-rect');
+        const sandB = document.getElementById('sand-b-rect');
+        const stream = document.getElementById('stream-line');
+        const instructionText = document.getElementById('instruction-text');
+        
+        let isFlipped = false;
+        let isFinished = false;
+        let startY = 0;
+        let sandLevel = 130; 
+        let pourInterval;
+        let streamBend = 0; // Tracks the physical bend of the sand
+
+        // Gyroscope tracking for gravity-bending sand
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', (e) => {
+                if (isFlipped && !isFinished) {
+                    // Limit the bend to keep it realistic
+                    let tilt = Math.min(Math.max(e.gamma, -45), 45); 
+                    // Invert tilt because the hourglass is upside down via CSS
+                    streamBend = -tilt * 0.4; 
+                    
+                    // Update the X coordinate of the bottom of the stream line
+                    stream.setAttribute('x2', 60 + streamBend);
+                }
+            });
+        }
+
+        function getCoords(e) { return e.touches ? e.touches[0].clientY : e.clientY; }
+
+        hgContainer.addEventListener('mousedown', handleStart);
+        hgContainer.addEventListener('touchstart', handleStart, {passive: false});
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchend', handleEnd);
+
+        function handleStart(e) {
+            if (isFlipped || isFinished) return;
+            startY = getCoords(e);
+            if(navigator.vibrate) navigator.vibrate(10);
+        }
+
+        function handleEnd(e) {
+            if (isFlipped || isFinished || startY === 0) return;
+            let endY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+            if ((endY - startY) < -40) flipHourglass(); // Swipe Up Aggressively
+            startY = 0; 
+        }
+
+        function flipHourglass() {
+            isFlipped = true;
+            if(navigator.vibrate) navigator.vibrate([40, 60, 40]); 
+
+            hgContainer.style.transform = 'rotate(180deg)';
+            hgContainer.classList.add('inverted');
+            instructionText.style.opacity = '0';
+            
+            setTimeout(startPouring, 900);
+        }
+
+        // --- 3. POURING PHYSICS ---
+        function startPouring() {
+            stream.style.opacity = '1';
+            let streamProgress = 130; 
+            
+            // Drop the stream line dynamically
+            let streamDrop = setInterval(() => {
+                streamProgress -= 5;
+                stream.setAttribute('y2', streamProgress);
+                if (streamProgress <= 10) clearInterval(streamDrop);
+            }, 16);
+
+            let hapticInterval = setInterval(() => {
+                if(navigator.vibrate) navigator.vibrate(8);
+            }, 100);
+
+            pourInterval = setInterval(() => {
+                sandLevel -= 0.5; // Slightly slower to build tension
+                
+                sandB.setAttribute('height', Math.max(0, sandLevel));
+                sandA.setAttribute('height', 130 - Math.max(0, sandLevel));
+
+                if (sandLevel <= 0) {
+                    clearInterval(pourInterval);
+                    clearInterval(hapticInterval);
+                    stream.style.opacity = '0';
+                    triggerOverload(); // Trigger the heartbeat sequence!
+                }
+            }, 30);
+        }
+
+        // --- 4. THE OVERLOAD HEARTBEAT & SHATTER ---
+        function triggerOverload() {
+            isFinished = true;
+            
+            // Apply the beating animation class
+            hgContainer.classList.add('overload');
+            
+            // Haptic heartbeat sequence synced with the CSS keyframes
+            if(navigator.vibrate) {
+                setTimeout(() => navigator.vibrate([80]), 0);      // Beat 1
+                setTimeout(() => navigator.vibrate([100]), 600);   // Beat 2
+                setTimeout(() => navigator.vibrate([120]), 1200);  // Beat 3
+                setTimeout(() => navigator.vibrate([200, 50, 500]), 2000); // Detonation
+            }
+
+            // Wait for the heartbeat animation to finish before exploding
+            setTimeout(() => {
+                hgContainer.style.display = 'none';
+
+                // Spawn 150 exploding heart particles
+                const cx = window.innerWidth / 2;
+                const cy = window.innerHeight / 2;
+                for(let i=0; i<150; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 30 + 5;
+                    particles.push({
+                        x: cx, y: cy,
+                        r: Math.random() * 2 + 1,
+                        alpha: 1, isHeart: true,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed
+                    });
+                }
+
+                // Supernova flash
+                const overlay = document.getElementById('supernova-overlay');
+                overlay.style.transition = 'opacity 0.1s ease-in';
+                overlay.style.opacity = '1';
+
+                setTimeout(() => {
+                    document.getElementById('final-screen').classList.add('active');
+                    overlay.style.transition = 'opacity 2.5s ease-out';
+                    overlay.style.opacity = '0';
+                }, 400);
+
+            }, 2400); // 2.4s delay matches the CSS overload animation timing
+        }
+    </script>
+</body>
+</html>
+
