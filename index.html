@@ -182,9 +182,9 @@
 
     <div id="intro-overlay">
         <div class="intro-text">
-            Hey honeybun 💗<br><br>
-            They say an invisible red thread connects those destined to meet.<br><br>
-            <span style="font-size: 1.3rem; color: #a68a8f; font-family: 'Montserrat', sans-serif; font-style: normal; font-weight: 300;">Ours is pulling me closer to you, day by day.</span>
+            Happy Birthday, Honeybun 💗<br><br>
+            Every spark, every puzzle, every single day led us to this exact moment.<br><br>
+            <span style="font-size: 1.3rem; color: #a68a8f; font-family: 'Montserrat', sans-serif; font-style: normal; font-weight: 300;">The journey is complete. The final door is waiting.</span>
         </div>
     </div>
 
@@ -192,7 +192,7 @@
 
     <div id="journey-container">
         <h1 class="header-title">The Journey to You</h1>
-        <p class="header-subtitle">15 Days to Celebrate My Pani Bommai</p>
+        <p class="header-subtitle">The Grand Finale for My Pani Bommai</p>
 
         <svg id="constellation-line">
             <path id="path-line" fill="none" stroke="rgba(255, 42, 95, 0.4)" stroke-width="2" />
@@ -201,7 +201,7 @@
         <div id="nodes-container" style="width: 100%;">
             </div>
 
-        <p class="header-subtitle" style="margin-top: 60px; margin-bottom: 0; opacity: 0.5;">Our Forever Begins Soon</p>
+        <p class="header-subtitle" style="margin-top: 60px; margin-bottom: 0; opacity: 0.5;">Our Forever Begins Today</p>
     </div>
 
     <script>
@@ -239,7 +239,6 @@
         const nodesContainer = document.getElementById('nodes-container');
         const pathLine = document.getElementById('path-line');
         
-        // Let's set to true so you can test all the links today!
         const unlockAllForTesting = true; 
 
         const now = new Date();
@@ -257,7 +256,7 @@
                 <div class="star-core ${isUnlocked ? 'star-unlocked' : 'star-locked'}" id="star-${i}">
                     ${isUnlocked ? i : '·'}
                 </div>
-                <div class="star-date">April ${i}</div>
+                <div class="star-date">Day ${i}</div>
             `;
 
             if (isUnlocked) {
@@ -277,6 +276,7 @@
                     else if (i === 12) window.location.href = 'day12.html';
                     else if (i === 13) window.location.href = 'day13.html';
                     else if (i === 14) window.location.href = 'day14.html';
+                    else if (i === 15) window.location.href = 'day15.html'; // Ensure Day 15 is linked!
                     else {
                         // Shake animation for days you haven't built pages for yet
                         const core = document.getElementById(`star-${i}`);
